@@ -86,3 +86,259 @@
     howpublished = {Dostęp zdalny (14.03.2019): \url{https://github.com/ArturB/DCP-19}},
     year         = {2019}
 }
+
+%=====================================================================
+% State of the art: IPsec / IKEv2 / PQC
+%=====================================================================
+
+@article{shor1997,
+    author  = {Shor, Peter W.},
+    title   = {Polynomial-Time Algorithms for Prime Factorization and Discrete Logarithms on a Quantum Computer},
+    journal = {SIAM Journal on Computing},
+    volume  = {26},
+    number  = {5},
+    pages   = {1484--1509},
+    year    = {1997},
+    doi     = {10.1137/S0097539795293172}
+}
+
+@inproceedings{grover1996,
+    author    = {Grover, Lov K.},
+    title     = {A Fast Quantum Mechanical Algorithm for Database Search},
+    booktitle = {Proceedings of the 28th Annual ACM Symposium on Theory of Computing (STOC)},
+    pages     = {212--219},
+    year      = {1996},
+    doi       = {10.1145/237814.237866}
+}
+
+@techreport{fips203,
+    author      = {{National Institute of Standards and Technology}},
+    title       = {Module-Lattice-Based Key-Encapsulation Mechanism Standard},
+    type        = {FIPS},
+    number      = {203},
+    institution = {NIST},
+    year        = {2024},
+    month       = aug,
+    doi         = {10.6028/NIST.FIPS.203}
+}
+
+@techreport{fips204,
+    author      = {{National Institute of Standards and Technology}},
+    title       = {Module-Lattice-Based Digital Signature Standard},
+    type        = {FIPS},
+    number      = {204},
+    institution = {NIST},
+    year        = {2024},
+    month       = aug,
+    doi         = {10.6028/NIST.FIPS.204}
+}
+
+@techreport{fips205,
+    author      = {{National Institute of Standards and Technology}},
+    title       = {Stateless Hash-Based Digital Signature Standard},
+    type        = {FIPS},
+    number      = {205},
+    institution = {NIST},
+    year        = {2024},
+    month       = aug,
+    doi         = {10.6028/NIST.FIPS.205}
+}
+
+% TODO verify author list / final version before submission
+@techreport{nistir8545,
+    author      = {{National Institute of Standards and Technology}},
+    title       = {Status Report on the Fourth Round of the {NIST} Post-Quantum Cryptography Standardization Process},
+    type        = {NIST IR},
+    number      = {8545},
+    institution = {NIST},
+    year        = {2025},
+    month       = mar,
+    doi         = {10.6028/NIST.IR.8545}
+}
+
+% TODO verify: initial public draft (Nov 2024); check for a final version
+@techreport{nistir8547,
+    author      = {Moody, Dustin and Perlner, Ray and Regenscheid, Andrew and Robinson, Angela and Cooper, David},
+    title       = {Transition to Post-Quantum Cryptography Standards (Initial Public Draft)},
+    type        = {NIST IR},
+    number      = {8547 ipd},
+    institution = {NIST},
+    year        = {2024},
+    month       = nov,
+    doi         = {10.6028/NIST.IR.8547.ipd}
+}
+
+@techreport{rfc2409,
+    author      = {Harkins, D. and Carrel, D.},
+    title       = {The {I}nternet {K}ey {E}xchange ({IKE})},
+    type        = {RFC},
+    number      = {2409},
+    institution = {RFC Editor},
+    year        = {1998},
+    month       = nov,
+    doi         = {10.17487/RFC2409}
+}
+
+@techreport{rfc3526,
+    author      = {Kivinen, T. and Kojo, M.},
+    title       = {More Modular Exponential ({MODP}) {D}iffie-{H}ellman groups for {I}nternet {K}ey {E}xchange ({IKE})},
+    type        = {RFC},
+    number      = {3526},
+    institution = {RFC Editor},
+    year        = {2003},
+    month       = may,
+    doi         = {10.17487/RFC3526}
+}
+
+@techreport{rfc4301,
+    author      = {Kent, S. and Seo, K.},
+    title       = {Security Architecture for the {I}nternet {P}rotocol},
+    type        = {RFC},
+    number      = {4301},
+    institution = {RFC Editor},
+    year        = {2005},
+    month       = dec,
+    doi         = {10.17487/RFC4301}
+}
+
+@techreport{rfc4302,
+    author      = {Kent, S.},
+    title       = {{IP} {A}uthentication {H}eader},
+    type        = {RFC},
+    number      = {4302},
+    institution = {RFC Editor},
+    year        = {2005},
+    month       = dec,
+    doi         = {10.17487/RFC4302}
+}
+
+@techreport{rfc4303,
+    author      = {Kent, S.},
+    title       = {{IP} {E}ncapsulating {S}ecurity {P}ayload ({ESP})},
+    type        = {RFC},
+    number      = {4303},
+    institution = {RFC Editor},
+    year        = {2005},
+    month       = dec,
+    doi         = {10.17487/RFC4303}
+}
+
+@techreport{rfc4306,
+    author      = {Kaufman, C.},
+    title       = {{I}nternet {K}ey {E}xchange ({IKEv2}) Protocol},
+    type        = {RFC},
+    number      = {4306},
+    institution = {RFC Editor},
+    year        = {2005},
+    month       = dec,
+    doi         = {10.17487/RFC4306}
+}
+
+@techreport{rfc4478,
+    author      = {Nir, Y.},
+    title       = {Repeated Authentication in {I}nternet {K}ey {E}xchange ({IKEv2}) Protocol},
+    type        = {RFC},
+    number      = {4478},
+    institution = {RFC Editor},
+    year        = {2006},
+    month       = apr,
+    doi         = {10.17487/RFC4478}
+}
+
+@techreport{rfc5903,
+    author      = {Fu, D. and Solinas, J.},
+    title       = {Elliptic Curve Groups modulo a Prime ({ECP} Groups) for {IKE} and {IKEv2}},
+    type        = {RFC},
+    number      = {5903},
+    institution = {RFC Editor},
+    year        = {2010},
+    month       = jun,
+    doi         = {10.17487/RFC5903}
+}
+
+@techreport{rfc7296,
+    author      = {Kaufman, C. and Hoffman, P. and Nir, Y. and Eronen, P. and Kivinen, T.},
+    title       = {{I}nternet {K}ey {E}xchange Protocol Version 2 ({IKEv2})},
+    type        = {RFC},
+    number      = {7296},
+    institution = {RFC Editor},
+    year        = {2014},
+    month       = oct,
+    doi         = {10.17487/RFC7296}
+}
+
+@techreport{rfc7383,
+    author      = {Smyslov, V.},
+    title       = {{I}nternet {K}ey {E}xchange Protocol Version 2 ({IKEv2}) Message Fragmentation},
+    type        = {RFC},
+    number      = {7383},
+    institution = {RFC Editor},
+    year        = {2015},
+    month       = nov,
+    doi         = {10.17487/RFC7383}
+}
+
+@techreport{rfc8031,
+    author      = {Nir, Y. and Josefsson, S.},
+    title       = {{C}urve25519 and {C}urve448 for the {I}nternet {K}ey {E}xchange Protocol Version 2 ({IKEv2}) Key Agreement},
+    type        = {RFC},
+    number      = {8031},
+    institution = {RFC Editor},
+    year        = {2016},
+    month       = dec,
+    doi         = {10.17487/RFC8031}
+}
+
+@techreport{rfc8784,
+    author      = {Fluhrer, S. and Kampanakis, P. and McGrew, D. and Smyslov, V.},
+    title       = {Mixing Preshared Keys in the {I}nternet {K}ey {E}xchange Protocol Version 2 ({IKEv2}) for Post-quantum Security},
+    type        = {RFC},
+    number      = {8784},
+    institution = {RFC Editor},
+    year        = {2020},
+    month       = jun,
+    doi         = {10.17487/RFC8784}
+}
+
+@techreport{rfc9242,
+    author      = {Smyslov, V.},
+    title       = {Intermediate Exchange in the {I}nternet {K}ey {E}xchange Protocol Version 2 ({IKEv2})},
+    type        = {RFC},
+    number      = {9242},
+    institution = {RFC Editor},
+    year        = {2022},
+    month       = may,
+    doi         = {10.17487/RFC9242}
+}
+
+@techreport{rfc9370,
+    author      = {Tjhai, CJ. and Tomlinson, M. and Bartlett, G. and Fluhrer, S. and Van Geest, D. and Garcia-Morchon, O. and Smyslov, V.},
+    title       = {Multiple Key Exchanges in the {I}nternet {K}ey {E}xchange Protocol Version 2 ({IKEv2})},
+    type        = {RFC},
+    number      = {9370},
+    institution = {RFC Editor},
+    year        = {2023},
+    month       = may,
+    doi         = {10.17487/RFC9370}
+}
+
+% TODO fill in authors, exact title and date from rfc-editor.org
+@techreport{rfc9867,
+    author      = {{TODO}},
+    title       = {Mixing Preshared Keys in the {IKE\_INTERMEDIATE} and in the {CREATE\_CHILD\_SA} Exchanges of {IKEv2} for Post-quantum Security},
+    type        = {RFC},
+    number      = {9867},
+    institution = {RFC Editor},
+    year        = {2025},
+    doi         = {10.17487/RFC9867}
+}
+
+% TODO set the draft version (-NN) you actually read and its date
+@misc{ikev2mlkem,
+    author       = {Kampanakis, P.},
+    title        = {Post-quantum Hybrid Key Exchange with {ML-KEM} in the {I}nternet {K}ey {E}xchange Protocol Version 2 ({IKEv2})},
+    howpublished = {Internet-Draft draft-ietf-ipsecme-ikev2-mlkem, IETF},
+    url          = {https://datatracker.ietf.org/doc/draft-ietf-ipsecme-ikev2-mlkem/},
+    year         = {2025}
+}
+
