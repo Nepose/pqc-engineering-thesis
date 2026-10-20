@@ -59,7 +59,6 @@
 \RequirePackage{ifluatex}      % LuaTeX-specific options
 \RequirePackage{kantlipsum}    % English kantian-style lipsum
 \RequirePackage{lipsum}        % Lorem ipsum
-\RequirePackage{listings}      % Code listings
 \RequirePackage{longtable}     % Multi-page tables
 \RequirePackage{multirow}      % Advanced table cells
 \RequirePackage{setspace}      % Set space between lines
@@ -207,7 +206,8 @@
 %---------------------
 \newcommand{\langpol}{
     \newcommand{\@lang}{pl}
-    \usepackage[polish]{babel}
+    \usepackage[french,polish]{babel}
+    \usepackage{listings} % Code listings; must be loaded after babel/french
     \usepackage{csquotes}
 
 	\newtheorem{theorem}{Twierdzenie}
@@ -225,7 +225,8 @@
 }
 \newcommand{\langeng}{
     \newcommand{\@lang}{en}
-    \usepackage[english]{babel}
+    \usepackage[french,english]{babel}
+    \usepackage{listings} % Code listings; must be loaded after babel/french
     \usepackage{csquotes}
 
 	\newtheorem{theorem}{Theorem}
@@ -392,6 +393,23 @@
         \vspace{0.5cm}\par\noindent \textbf{Słowa kluczowe:\xspace}
     \fi
 }
+
+%----------------------------
+% Streszczenie po francusku (opcjonalne, trzecie)
+%----------------------------
+\newcommand{\@frtitle}{}
+\newcommand{\frtitle}[1]{\renewcommand{\@frtitle}{#1}}
+\newcommand{\thirdabstract}{
+    \begin{otherlanguage}{french}
+    \thispagestyle{plain}
+    \begin{center}\textbf{\large\@frtitle}\end{center}
+    \textbf{\\ Résumé.\xspace}
+}
+\newcommand{\thirdkeywords}{
+    \vspace{0.5cm}\par\noindent \textbf{Mots-clés:\xspace}
+}
+% Closes the French language scope opened by \thirdabstract
+\newcommand{\finishthirdabstract}{\par\end{otherlanguage}}
 
 %----------------------------
 % Oświadczenie o autorstwie

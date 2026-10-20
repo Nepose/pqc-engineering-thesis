@@ -13,24 +13,13 @@
 \graphicspath{{tex/img/}} % Katalog z obrazkami.
 \addbibresource{bibliografia.bib} % Plik .bib z bibliografią
 
-%-------------------------------------------------------------
-% Wybór wydziału:
-%  \facultyeiti: Wydział Elektroniki i Technik Informacyjnych
-%  \facultymeil: Wydział Mechaniczny Energetyki i Lotnictwa
-% --
-% Rodzaj pracy: \EngineerThesis, \MasterThesis
-% --
-% Wybór języka: \langpol, \langeng
-%-------------------------------------------------------------
+
 \facultyeiti    % Wydział Elektroniki i Technik Informacyjnych
 \EngineerThesis % Praca inżynierska
-\langpol % Praca w języku polskim
+\langeng % Praca w języku angielskim
 
 \begin{document}
 
-%------------------
-% Strona tytułowa
-%------------------
 \instytut{XXXXXX}
 \kierunek{XXXXXX}
 \specjalnosc{XXXXXX}
@@ -49,6 +38,11 @@
 \poltitle{
     Niepotrzebnie długi i skomplikowany tytuł pracy \\
     trudny do przeczytania, zrozumienia i wymówienia
+}
+% Titre en français (only for the optional third abstract)
+\frtitle{
+    Titre de la thèse inutilement long et compliqué \\
+    difficile à lire, à comprendre et à prononcer
 }
 \author{\{Imię i Nazwisko\}}
 \album{XXXXXX}
@@ -71,6 +65,12 @@
 \clearpage
 \secondabstract \kant[1-3]
 \secondkeywords XXX, XXX, XXX
+
+% Optional third abstract (French) -- remove these 4 lines if not needed
+\clearpage
+\thirdabstract \lipsum[1-2]
+\thirdkeywords XXX, XXX, XXX
+\finishthirdabstract
 
 \pagestyle{plain}
 
