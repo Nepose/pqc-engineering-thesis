@@ -347,6 +347,7 @@ against HNDL even before post-quantum KEMs are deployed. The IETF IPsecME
 working group has addressed each of these in a separate specification.
 
 \subsubsection{Large messages: IKE fragmentation and \texttt{IKE\_INTERMEDIATE}}
+\placeholder{RFC 7383 and RFC 9242.}
 % TODO (RFC 7383~\cite{rfc7383}):
 %  - Why IP-level fragmentation is unreliable (NATs, firewalls dropping fragments).
 %  - The Encrypted Fragment payload (SKF); how fragmentation is negotiated.
@@ -360,6 +361,7 @@ working group has addressed each of these in a separate specification.
 %  - Possibility of multiple IKE_INTERMEDIATE exchanges.
 
 \subsubsection{Multiple key exchanges}
+\placeholder{RFC 9370.}
 % TODO (RFC 9370~\cite{rfc9370}):
 %  - Transform Type 4 renamed to "Key Exchange Method"; new Transform Types
 %    "Additional Key Exchange 1..7".
@@ -370,6 +372,7 @@ working group has addressed each of these in a separate specification.
 %  - Diagram: hybrid X25519 + ML-KEM initial exchange.
 
 \subsubsection{ML-KEM in IKEv2}
+\placeholder{draft-ietf-ipsecme-ikev2-mlkem.}
 % TODO (draft-ietf-ipsecme-ikev2-mlkem~\cite{ikev2mlkem}):
 %  - Transform IDs for ML-KEM-512/768/1024, payload format.
 %  - Mapping of KEM roles onto initiator/responder.
@@ -377,6 +380,7 @@ working group has addressed each of these in a separate specification.
 %  - Current status of the draft (check the datatracker before submission).
 
 \subsubsection{Post-quantum preshared keys}
+\placeholder{RFC 8784 and RFC 9867.}
 % TODO (RFC 8784~\cite{rfc8784}):
 %  - The PPK and how it is mixed into SK_d, SK_pi, SK_pr.
 %  - What is and is *not* protected (the initial IKE SA encryption keys).
@@ -385,6 +389,7 @@ working group has addressed each of these in a separate specification.
 %  - How it extends PPK mixing to IKE_INTERMEDIATE and CREATE_CHILD_SA.
 
 \subsubsection{Post-quantum authentication}
+\placeholder{Short note; out of scope.}
 % TODO: Short note only. Authentication with ML-DSA/SLH-DSA in IKEv2 is
 % being specified separately; state it is out of scope and why
 % (see Section~\ref{sec:sota-quantum}: no HNDL risk for authentication).
@@ -392,6 +397,7 @@ working group has addressed each of these in a separate specification.
 %---------------------------------------------------------------------------
 \subsection{Implementations and related work}
 \label{sec:sota-impl}
+\placeholder{strongSwan, Libreswan; published measurements; research gap.}
 % TODO:
 %  - Open-source IKEv2 daemons and their PQC support: strongSwan, Libreswan
 %    (versions, which RFCs and transforms they implement). This decides
@@ -404,5 +410,6 @@ working group has addressed each of these in a separate specification.
 %---------------------------------------------------------------------------
 \subsection{Summary}
 \label{sec:sota-summary}
+\placeholder{Write last.}
 % TODO: write last. 1-2 paragraphs: what is standardised, what is still a
 % draft, what remains to be measured, and how this motivates the next chapter.
