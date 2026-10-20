@@ -395,6 +395,17 @@ working group has addressed each of these in a separate specification.
 % (see Section~\ref{sec:sota-quantum}: no HNDL risk for authentication).
 
 %---------------------------------------------------------------------------
+\subsection{Post-quantum cryptography on constrained and IoT devices}
+\label{sec:sota-iot}
+\placeholder{Cost of ML-KEM on embedded platforms; IPsec in IoT gateways; constrained links.}
+% TODO:
+%  - pqm4~\cite{pqm4} benchmarks of ML-KEM on Cortex-M4; ARM Cortex-A figures.
+%  - Typical IoT gateway hardware and why IPsec/IKEv2 is used there.
+%  - Constrained links (LTE-M, NB-IoT): latency, bandwidth, MTU, loss -- why
+%    large fragmented IKE messages are a particular problem there.
+%  - Device lifetime vs HNDL; crypto-agility of deployed devices.
+
+%---------------------------------------------------------------------------
 \subsection{Implementations and related work}
 \label{sec:sota-impl}
 \placeholder{strongSwan, Libreswan; published measurements; research gap.}
@@ -406,6 +417,21 @@ working group has addressed each of these in a separate specification.
 %    sizes, number of fragments, CPU cost), plus TLS 1.3 hybrid studies
 %    for comparison.
 %  - Identify what those works do *not* measure -> the gap this thesis fills.
+
+%---------------------------------------------------------------------------
+\subsection{Regulatory context of the post-quantum migration}
+\label{sec:sota-regulatory}
+\placeholder{Legal and supervisory drivers for the migration in the EU and Poland.}
+% TODO:
+%  - Polish Act on the National Cybersecurity System (UKSC)~\cite{uksc}: who is
+%    covered (operators of essential services, banking sector), obligations
+%    on risk management and security measures. Check the current consolidated
+%    text and the status of the NIS2-implementing amendment.
+%  - NIS2~\cite{nis2} and DORA~\cite{dora}: how they apply to banks and how
+%    they relate to UKSC (lex specialis for financial entities).
+%  - EU coordinated PQC transition roadmap~\cite{euPqcRoadmap}, NIST IR 8547
+%    timelines (Section~\ref{sec:sota-quantum}).
+%  - Keep this descriptive; recommendations go to Section~\ref{sec:reco}.
 
 %---------------------------------------------------------------------------
 \subsection{Summary}

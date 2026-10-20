@@ -1,0 +1,42 @@
+\clearpage
+\section{Recommendations for migrating IPsec VPNs to post-quantum cryptography}
+\label{sec:reco}
+
+% CONFIDENTIALITY: this chapter is public. It is based only on the lab results
+% of this thesis and on public regulation. No information about the employer
+% (audit findings, architecture, vendors, inventory) goes here unless approved
+% in writing. The mapping onto the bank's environment is a separate internal
+% document.
+
+\placeholder{Recommendations for operators of IPsec VPNs in regulated financial
+institutions and IoT deployments, derived from the results in
+Section~\ref{sec:results}.}
+
+\subsection{Regulatory and organisational context}
+\label{sec:reco-context}
+\placeholder{Obligations under the Act on the National Cybersecurity System
+(UKSC) relevant to cryptography and risk management of essential services in the
+banking sector; relation to NIS2 and DORA; EU PQC roadmap milestones
+(see Section~\ref{sec:sota-regulatory}).}
+
+\subsection{Cryptographic inventory and prioritisation}
+\label{sec:reco-inventory}
+\placeholder{How to inventory IPsec tunnels and their algorithms; prioritising
+tunnels by required confidentiality lifetime of the data (HNDL exposure).}
+
+\subsection{Configuration recommendations}
+\label{sec:reco-config}
+\placeholder{Recommended hybrid combinations and parameter sets, rekeying policy
+given the measured cost, IKE fragmentation settings, PPK as an interim measure
+where ML-KEM is not yet available.}
+
+\subsection{Network and vendor readiness}
+\label{sec:reco-readiness}
+\placeholder{Vendor support for RFC 9370, RFC 9242, RFC 7383 and ML-KEM;
+handling of fragmented UDP 500/4500 by firewalls and NAT devices;
+constraints of IoT gateways.}
+
+\subsection{Migration plan and verification}
+\label{sec:reco-plan}
+\placeholder{Phased rollout, interoperability testing, monitoring of handshake
+failures and fragment loss, fallback strategy.}
