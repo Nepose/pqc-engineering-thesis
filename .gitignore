@@ -4,3 +4,23 @@ test/**/*.pdf
 .sconsign.dblite
 .vscode
 /*.pdf
+
+# LaTeX build artifacts (latexmk / biber / LaTeX Workshop)
+/main.aux
+/main.app
+/main.bbl
+/main.bcf
+/main.blg
+/main.fdb_latexmk
+/main.fls
+/main.lof
+/main.log
+/main.lot
+/main.out
+/main.run.xml
+/main.synctex.gz
+/main.toc
+
+# macOS and editor workspace files
+.DS_Store
+*.code-workspace
