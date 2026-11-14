@@ -8,8 +8,11 @@ pose to public-key cryptography and explains why the key exchange of VPN
 protocols is the most urgent part to migrate. It then describes the IPsec
 architecture and the Internet Key Exchange Protocol Version~2 (IKEv2), with an
 emphasis on the exchanges in which key material is established or refreshed.
-Finally, it reviews the IETF specifications that enable post-quantum and
-hybrid key exchange in IKEv2, together with existing implementations.
+It then reviews the IETF specifications that enable post-quantum and
+hybrid key exchange in IKEv2, the cost of post-quantum cryptography on
+constrained devices and links, existing implementations and published
+measurements. It closes with the regulatory context that drives the migration
+in the European Union and in Poland.
 
 %---------------------------------------------------------------------------
 \subsection{The quantum threat to key exchange}
@@ -87,9 +90,13 @@ Lattice-based KEMs have been studied far less intensively than ECDH, and their
 implementations are still young. A \emph{hybrid} key exchange combines a
 classical and a post-quantum algorithm so that the resulting key remains secure
 as long as at least one of the components is unbroken. Hybrid deployment is
-recommended during the transition period by, among others, the French ANSSI and
-the German BSI. % TODO: cite ANSSI and BSI position papers
-It is also the configuration that this thesis implements and evaluates.
+recommended during the transition period by, among others, the French
+ANSSI~\cite{anssi2023} and the German BSI, whose technical guideline currently
+recommends post-quantum key agreement \emph{only} in combination with
+a classical mechanism~\cite{bsiTr02102}. The same position was taken in a joint
+statement of eighteen EU member states in November 2024~\cite{jointPqc2024}.
+Hybrid key exchange is also the configuration that this thesis implements and
+evaluates.
 
 %---------------------------------------------------------------------------
 \subsection{IPsec architecture}
@@ -336,9 +343,6 @@ what the extensions described in the next section address.
 \subsection{Enabling post-quantum key exchange in IKEv2}
 \label{sec:sota-pqc-ike}
 
-% NOTE: Write this section after reading the RFCs below. The bullets are
-% what each subsection should answer; delete them once covered.
-
 Introducing post-quantum algorithms into IKEv2 raises three problems. Post-quantum
 public keys and ciphertexts are an order of magnitude larger than classical ones
 (Table~\ref{tab:ke-sizes}). The original protocol can negotiate and carry only
@@ -347,95 +351,682 @@ against HNDL even before post-quantum KEMs are deployed. The IETF IPsecME
 working group has addressed each of these in a separate specification.
 
 \subsubsection{Large messages: IKE fragmentation and \texttt{IKE\_INTERMEDIATE}}
-\placeholder{RFC 7383 and RFC 9242.}
-% TODO (RFC 7383~\cite{rfc7383}):
-%  - Why IP-level fragmentation is unreliable (NATs, firewalls dropping fragments).
-%  - The Encrypted Fragment payload (SKF); how fragmentation is negotiated.
-%  - Key limitation: only *encrypted* messages can be fragmented, so
-%    IKE_SA_INIT cannot be.
-% TODO (RFC 9242~\cite{rfc9242}):
-%  - Where IKE_INTERMEDIATE sits (after IKE_SA_INIT, before IKE_AUTH) and why
-%    it is already encrypted, and therefore fragmentable.
-%  - How the content of intermediate messages is authenticated (the IntAuth
-%    values added to the AUTH computation).
-%  - Possibility of multiple IKE_INTERMEDIATE exchanges.
+\label{sec:sota-frag}
+
+\paragraph{IKE fragmentation.}
+IKEv2 runs over UDP, so a message larger than the path MTU is fragmented at
+the IP layer. In practice IP fragments are often lost: some NAT devices,
+including carrier-grade NATs, do not pass them, and many firewalls discard
+them by default, in particular for IPv6~\cite{rfc7383}. Before post-quantum
+cryptography, this mainly affected \texttt{IKE\_AUTH} messages carrying
+certificate chains. RFC~7383~\cite{rfc7383} solves the problem inside IKE
+itself. Support is announced with an \texttt{IKEV2\_FRAGMENTATION\_SUPPORTED}
+notification in \texttt{IKE\_SA\_INIT}. Once both peers have sent it, the
+sender of a large message splits the plaintext content of its Encrypted
+payload into chunks and protects each chunk separately in an \emph{Encrypted
+Fragment} payload (\texttt{SKF}), which carries a fragment number and the
+total number of fragments. The receiver verifies and decrypts every fragment
+and reassembles the original message. If no PMTU information is available, the
+RFC recommends a maximum datagram size of 576~bytes for IPv4 and 1280~bytes
+for IPv6.
+
+Because each fragment is encrypted and integrity-protected, fragmentation is
+only possible once the keys $SK_e$ and $SK_a$ exist. Messages of
+\texttt{IKE\_SA\_INIT} therefore \emph{cannot} be fragmented at the IKE
+layer~\cite{rfc7383}. A post-quantum public key placed in the \texttt{KEi}
+payload of \texttt{IKE\_SA\_INIT} falls back on IP fragmentation, with all the
+problems described above. Note also that RFC~7383 does not retransmit
+individual fragments: if any fragment of a request is lost, the initiator
+retransmits the whole message after its normal IKEv2 timeout. Under loss,
+this behaviour turns out to be the main cost of post-quantum IKEv2
+(Section~\ref{sec:sota-impl}).
+
+\paragraph{The \texttt{IKE\_INTERMEDIATE} exchange.}
+RFC~9242~\cite{rfc9242} introduces a new exchange, \texttt{IKE\_INTERMEDIATE}
+(exchange type 43), that takes place after \texttt{IKE\_SA\_INIT} and before
+\texttt{IKE\_AUTH}. Support is negotiated with an
+\texttt{INTERMEDIATE\_EXCHANGE\_SUPPORTED} notification in
+\texttt{IKE\_SA\_INIT}. Since the keys derived from \texttt{IKE\_SA\_INIT}
+already exist at this point, \texttt{IKE\_INTERMEDIATE} messages must carry an
+Encrypted payload, and any large data must be placed inside it. They can
+therefore be fragmented with RFC~7383. The initiator may run several
+\texttt{IKE\_INTERMEDIATE} exchanges. Because the window size is 1 before the
+IKE SA is established, they are strictly sequential, and each costs a full
+round trip. If an exchange updates the IKE SA keys, the next exchange is
+protected with the updated keys.
+
+\texttt{IKE\_INTERMEDIATE} messages are exchanged before the peers are
+authenticated, so they must be authenticated afterwards in
+\texttt{IKE\_AUTH}. Adding their on-the-wire form to the \texttt{AUTH}
+computation is not possible, because the same message may be sent
+unfragmented, fragmented, or fragmented with different sizes. Instead, each
+peer computes a chained value over the \emph{plaintext} content of every
+intermediate message it sent:
+\begin{equation}
+    \mathit{IntAuth}_{i,n} = \mathrm{prf}\bigl(SK_{pi,n},\; \mathit{IntAuth}_{i,n-1} \,|\, A_{i,n} \,|\, P_{i,n}\bigr),
+\end{equation}
+where $A$ is the IKE header and any unencrypted payloads up to the generic
+header of the Encrypted payload, and $P$ is the not-yet-encrypted inner
+payloads (and analogously for the responder). The final values
+$\mathit{IntAuth}_{i,N}$ and $\mathit{IntAuth}_{r,N}$, together with the
+Message ID of the first \texttt{IKE\_AUTH} message, are appended to the octets
+signed or MACed in \texttt{AUTH}~\cite{rfc9242}. Any tampering with an
+intermediate exchange is therefore detected in \texttt{IKE\_AUTH}, in the same
+way as tampering with \texttt{IKE\_SA\_INIT}.
 
 \subsubsection{Multiple key exchanges}
-\placeholder{RFC 9370.}
-% TODO (RFC 9370~\cite{rfc9370}):
-%  - Transform Type 4 renamed to "Key Exchange Method"; new Transform Types
-%    "Additional Key Exchange 1..7".
-%  - Initial SA: one additional KE per IKE_INTERMEDIATE exchange; how
-%    SKEYSEED is updated after each one.
-%  - CREATE_CHILD_SA: the IKE_FOLLOWUP_KE exchange (it fixes the
-%    single-KE limitation described in Section~\ref{sec:sota-rekey}).
-%  - Diagram: hybrid X25519 + ML-KEM initial exchange.
+\label{sec:sota-multike}
+
+RFC~9370~\cite{rfc9370} uses \texttt{IKE\_INTERMEDIATE} to perform up to
+eight key exchanges when an SA is established. It renames Transform Type~4 from
+``Diffie--Hellman Group'' to \emph{Key Exchange Method} (KE). It also renames
+the corresponding field of the KE payload, and it treats classical and
+post-quantum methods alike. Seven new transform types, \emph{Additional Key
+Exchange~1--7} (ADDKE1--ADDKE7, values 6--12), share the Transform Type~4
+registry of identifiers. An initiator that wants, for example, X25519 combined
+with ML-KEM-768 proposes X25519 as Transform Type~4 and ML-KEM-768 as ADDKE1.
+Proposing \texttt{NONE} under an ADDKE type marks that additional exchange as
+optional. A proposal without any ADDKE transforms means plain RFC~7296
+behaviour.
+
+\paragraph{Initial exchanges.}
+The method negotiated as Transform Type~4 is performed in
+\texttt{IKE\_SA\_INIT} as usual. Each additional method is then performed in
+its own \texttt{IKE\_INTERMEDIATE} exchange, in order of the ADDKE transform
+type, carrying payloads $\mathrm{KEi}(n)$ and $\mathrm{KEr}(n)$. After the
+$n$-th exchange both peers mix the new shared secret $SK(n)$ into the key
+schedule:
+\begin{align}
+    \mathit{SKEYSEED}(n) &= \mathrm{prf}\bigl(SK_d(n{-}1),\; SK(n) \,|\, N_i \,|\, N_r\bigr) \\
+    \{SK_d(n) \,|\, SK_{ai}(n) \,|\, \ldots \,|\, SK_{pr}(n)\}
+        &= \mathrm{prf+}\bigl(\mathit{SKEYSEED}(n),\; N_i \,|\, N_r \,|\, SPI_i \,|\, SPI_r\bigr)
+\end{align}
+where $SK_d(0)$ is the value derived from \texttt{IKE\_SA\_INIT}
+(Equation~\eqref{eq:skeyseed}). The final keys protect \texttt{IKE\_AUTH}, and
+the first Child SA is derived from the final $SK_d$ as in
+Equation~\eqref{eq:keymat}. Both the IKE SA and the first Child SA therefore
+depend on every key exchange that took place. Figure~\ref{fig:ikev2-hybrid}
+shows the resulting message flow for X25519 combined with ML-KEM-768.
+
+\begin{figure}[!h]
+    \centering
+    \begin{tikzpicture}[>=stealth, font=\small, x=1cm, y=1cm]
+        \node[font=\bfseries] at (0,0)  {Initiator};
+        \node[font=\bfseries] at (11,0) {Responder};
+        \draw[thick] (0,-0.3)  -- (0,-9.0);
+        \draw[thick] (11,-0.3) -- (11,-9.0);
+
+        % IKE_SA_INIT
+        \draw[->] (0,-1.6) -- node[above, align=center]
+            {HDR, SAi1, KEi(0), Ni,\\
+             N(INTERMEDIATE\_EXCHANGE\_SUPPORTED),\\
+             N(IKEV2\_FRAGMENTATION\_SUPPORTED)} (11,-1.6);
+        \draw[<-] (0,-3.2) -- node[above, align=center]
+            {HDR, SAr1, KEr(0), Nr, [CERTREQ],\\
+             N(INTERMEDIATE\_EXCHANGE\_SUPPORTED),\\
+             N(IKEV2\_FRAGMENTATION\_SUPPORTED)} (11,-3.2);
+        \draw[decorate, decoration={brace, amplitude=4pt}]
+            (11.2,-0.5) -- (11.2,-3.4)
+            node[midway, right=6pt, align=left] {\texttt{IKE\_SA\_INIT}\\(in clear)};
+
+        % IKE_INTERMEDIATE
+        \draw[->] (0,-4.2) -- node[above] {HDR, SK\{KEi(1)\} \quad (1184 B, fragmentable)} (11,-4.2);
+        \draw[<-] (0,-5.2) -- node[above] {HDR, SK\{KEr(1)\} \quad (1088 B, fragmentable)} (11,-5.2);
+        \draw[decorate, decoration={brace, amplitude=4pt}]
+            (11.2,-3.9) -- (11.2,-5.4)
+            node[midway, right=6pt, align=left] {\texttt{IKE\_INTER-}\\\texttt{MEDIATE}};
+
+        % IKE_AUTH
+        \draw[->] (0,-6.6) -- node[above, align=center]
+            {HDR, SK\{IDi, [CERT], AUTH, SAi2, TSi, TSr\}} (11,-6.6);
+        \draw[<-] (0,-7.9) -- node[above, align=center]
+            {HDR, SK\{IDr, [CERT], AUTH, SAr2, TSi, TSr\}} (11,-7.9);
+        \draw[decorate, decoration={brace, amplitude=4pt}]
+            (11.2,-6.2) -- (11.2,-8.1)
+            node[midway, right=6pt, align=left] {\texttt{IKE\_AUTH}\\(AUTH covers\\IntAuth)};
+    \end{tikzpicture}
+    \caption{Hybrid X25519 + ML-KEM-768 IKE SA establishment (based on
+    RFC~9370~\cite{rfc9370} and RFC~9242~\cite{rfc9242}). \texttt{SAi1}
+    proposes X25519 as Transform Type~4 and ML-KEM-768 as ADDKE1. Sizes are
+    those of the ML-KEM key exchange data.}
+    \label{fig:ikev2-hybrid}
+\end{figure}
+
+\paragraph{\texttt{CREATE\_CHILD\_SA} and \texttt{IKE\_FOLLOWUP\_KE}.}
+RFC~9370 also removes the single-KE limitation of \texttt{CREATE\_CHILD\_SA}
+noted in Section~\ref{sec:sota-rekey}. Additional key exchanges are negotiated
+with ADDKE transforms in the SA payload in the same way. The Transform Type~4
+method is still performed in the \texttt{CREATE\_CHILD\_SA} exchange itself,
+and every additional method is performed in a new \texttt{IKE\_FOLLOWUP\_KE}
+exchange (exchange type 44). Once the IKE SA exists, several exchanges may be in
+progress at the same time. The responder therefore links them with an
+\texttt{ADDITIONAL\_KEY\_EXCHANGE} notification, which the initiator returns
+unchanged in its next request. When all exchanges are complete, the keys are
+computed from all shared secrets at once:
+\begin{align}
+    \mathit{SKEYSEED}_{\mathrm{new}} &= \mathrm{prf}\bigl(SK_d,\; SK(0) \,|\, N_i \,|\, N_r \,|\, SK(1) \,|\, \ldots \,|\, SK(n)\bigr)
+        && \text{(IKE SA rekey)} \\
+    \mathit{KEYMAT} &= \mathrm{prf+}\bigl(SK_d,\; SK(0) \,|\, N_i \,|\, N_r \,|\, SK(1) \,|\, \ldots \,|\, SK(n)\bigr)
+        && \text{(Child SA)}
+\end{align}
+The new SA exists only after the last \texttt{IKE\_FOLLOWUP\_KE} exchange.
+This changes several details of the protocol. A responder that waits too long
+for the next request discards its state; RFC~9370 suggests 5--20~seconds.
+A late request is then answered with \texttt{STATE\_NOT\_FOUND}, and the whole
+rekey must be restarted. Rekey collisions are still resolved by comparing
+nonces, but a losing initiator simply stops before the
+\texttt{IKE\_FOLLOWUP\_KE} exchanges~\cite{rfc9370}. All of these messages are
+encrypted, so they can be fragmented.
+
+\paragraph{Cost in round trips.}
+Table~\ref{tab:rtt} summarises the effect of RFC~9370 on each procedure from
+Section~\ref{sec:sota-rekey}, for a single additional key exchange. Each
+additional key exchange costs one more round trip in every procedure that
+performs a key exchange. These are exactly the procedures whose cost this
+thesis measures.
+
+\begin{table}[!h] \centering
+    \caption{Exchanges and round trips per procedure, classical versus hybrid
+    with one additional key exchange (no \texttt{COOKIE} or
+    \texttt{INVALID\_KE\_PAYLOAD} round trips; deletion of old SAs not counted).}
+    \label{tab:rtt}
+    \begin{tabular}{| p{0.24\linewidth} | p{0.28\linewidth} | p{0.36\linewidth} |} \hline
+        Procedure & Classical (RFC~7296) & Hybrid (RFC~9370) \\ \hline\hline
+        Initial IKE SA + first Child SA
+            & \texttt{IKE\_SA\_INIT}, \texttt{IKE\_AUTH} (2)
+            & \texttt{IKE\_SA\_INIT}, \texttt{IKE\_INTERMEDIATE}, \texttt{IKE\_AUTH} (3) \\ \hline
+        Child SA rekey without KE
+            & \texttt{CREATE\_CHILD\_SA} (1)
+            & \texttt{CREATE\_CHILD\_SA} (1) \\ \hline
+        Child SA rekey with KE
+            & \texttt{CREATE\_CHILD\_SA} (1)
+            & \texttt{CREATE\_CHILD\_SA}, \texttt{IKE\_FOLLOWUP\_KE} (2) \\ \hline
+        IKE SA rekey
+            & \texttt{CREATE\_CHILD\_SA} (1)
+            & \texttt{CREATE\_CHILD\_SA}, \texttt{IKE\_FOLLOWUP\_KE} (2) \\ \hline
+        Reauthentication
+            & as initial (2)
+            & as initial (3) \\ \hline
+    \end{tabular}
+\end{table}
+
+\paragraph{Childless variant.}
+RFC~9370 also describes an alternative that does not need
+\texttt{IKE\_INTERMEDIATE}. The peers establish the IKE SA classically
+without creating a Child SA in \texttt{IKE\_AUTH}, using the childless
+initiation of RFC~6023~\cite{rfc6023}. They then immediately rekey the IKE SA
+and create Child SAs with additional key exchanges in
+\texttt{CREATE\_CHILD\_SA}/\texttt{IKE\_FOLLOWUP\_KE}. User traffic is then
+protected by post-quantum keys. However, everything sent over the initial IKE
+SA, including the peers' identities and the negotiated traffic selectors,
+remains exposed to an HNDL adversary~\cite{rfc9370,ikev2mlkem}.
 
 \subsubsection{ML-KEM in IKEv2}
-\placeholder{draft-ietf-ipsecme-ikev2-mlkem.}
-% TODO (draft-ietf-ipsecme-ikev2-mlkem~\cite{ikev2mlkem}):
-%  - Transform IDs for ML-KEM-512/768/1024, payload format.
-%  - Mapping of KEM roles onto initiator/responder.
-%  - Pure PQ vs hybrid (combined with RFC 9370), and which the draft recommends.
-%  - Current status of the draft (check the datatracker before submission).
+\label{sec:sota-mlkem}
+
+RFC~9370 is algorithm-agnostic. The use of ML-KEM in it is specified in the
+Internet-Draft \texttt{draft-ietf-ipsecme-ikev2-mlkem}~\cite{ikev2mlkem}.
+This thesis refers to revision~09 (July 2026), which as of October 2026 has
+been approved by the IESG and is in the RFC Editor queue.
+% TODO before submission: check the datatracker; if published, cite the RFC.
+The draft registers three Transform Type~4 identifiers: 35
+(\texttt{ml-kem-512}), 36 (\texttt{ml-kem-768}) and 37
+(\texttt{ml-kem-1024}). These can be used either as the Transform Type~4 method
+or as an additional key exchange.
+
+\paragraph{Mapping of KEM roles.}
+ML-KEM is used like a Diffie--Hellman group. The initiator runs
+\emph{KeyGen} and sends the encapsulation key in \texttt{KEi}. The responder
+runs \emph{Encaps} on it and returns the ciphertext in \texttt{KEr}. The
+initiator then runs \emph{Decaps}. The resulting 32-byte shared secret takes
+the place of $g^{ir}$ in all key derivations. The key exchange data sizes are
+those of Table~\ref{tab:ke-sizes}; with the 8-byte payload header, a KE
+payload grows to 1192~bytes (initiator) and 1096~bytes (responder) for
+ML-KEM-768. A fresh key pair and fresh encapsulation randomness are required
+for every exchange, and the ML-KEM randomness must be independent of that used
+for the classical key exchange. Before encapsulating, the responder must
+validate the received encapsulation key as required by FIPS~203. The initiator
+must also check the ciphertext before decapsulating. ML-KEM uses implicit
+rejection, so a manipulated ciphertext does not cause an explicit error. It
+yields different keys on the two sides, and the exchange fails in
+\texttt{IKE\_AUTH}.
+
+\paragraph{Pure versus hybrid.}
+The draft focuses on ML-KEM as the \emph{second}, additional key exchange of
+a post-quantum/traditional hybrid, which is also the configuration recommended
+by ANSSI and BSI (Section~\ref{sec:sota-quantum}). It permits ML-KEM on its
+own in \texttt{IKE\_SA\_INIT} only for ML-KEM-512, whose sizes are unlikely to
+exceed common path MTUs. Implementations that use UDP and do not perform PMTU
+discovery \emph{should not} place ML-KEM-768 or ML-KEM-1024 in
+\texttt{IKE\_SA\_INIT} when the path MTU is unknown or small, because those
+messages cannot be fragmented at the IKE layer~\cite{ikev2mlkem}.
+
+\paragraph{Downgrade.}
+IKEv2 authenticates the negotiation only afterwards, so an active attacker
+could steer peers that support both hybrid and classical-only proposals
+towards the classical one. Exploiting this for a quantum attack would require
+breaking the classical key exchange \emph{during} the negotiation. The draft
+nevertheless recommends that peers known to support ML-KEM reject proposals
+without it~\cite{ikev2mlkem}. This is a configuration matter, and it is
+revisited in Chapter~\ref{sec:reco}.
 
 \subsubsection{Post-quantum preshared keys}
-\placeholder{RFC 8784 and RFC 9867.}
-% TODO (RFC 8784~\cite{rfc8784}):
-%  - The PPK and how it is mixed into SK_d, SK_pi, SK_pr.
-%  - What is and is *not* protected (the initial IKE SA encryption keys).
-%  - Negotiation (USE_PPK, PPK_IDENTITY), mandatory vs optional PPK.
-% TODO (RFC 9867~\cite{rfc9867}):
-%  - How it extends PPK mixing to IKE_INTERMEDIATE and CREATE_CHILD_SA.
+\label{sec:sota-ppk}
+
+A different way to obtain quantum resistance, without any post-quantum
+algorithm, is to mix a long, high-entropy secret shared by both peers into the
+key derivation. The ordinary IKEv2 preshared key does not help here, because it
+is used only for authentication and not for key derivation.
+
+\paragraph{RFC~8784.}
+RFC~8784~\cite{rfc8784} defines a \emph{Post-quantum Preshared Key} (PPK),
+identified by a \texttt{PPK\_ID}. Each peer configures it per remote peer,
+together with a flag stating whether its use is mandatory. Support is
+announced with a \texttt{USE\_PPK} notification in \texttt{IKE\_SA\_INIT}. The
+standard key derivation is performed first, and three of the resulting keys
+are then passed through the PRF once more, keyed with the PPK:
+\begin{equation}
+    SK_d = \mathrm{prf+}(\mathit{PPK},\, SK_d'), \quad
+    SK_{pi} = \mathrm{prf+}(\mathit{PPK},\, SK_{pi}'), \quad
+    SK_{pr} = \mathrm{prf+}(\mathit{PPK},\, SK_{pr}').
+\end{equation}
+The initiator sends the \texttt{PPK\_ID} in a \texttt{PPK\_IDENTITY}
+notification in \texttt{IKE\_AUTH}. If the PPK is optional, it can also add a
+\texttt{NO\_PPK\_AUTH} notification containing authentication data computed
+without the PPK, so that a responder without a matching PPK can still fall
+back to standard IKEv2. Because the PPK enters $SK_d$, all Child SA keys and
+all keys of IKE SAs created by rekeying are quantum-resistant. Including it in
+$SK_{pi}$ and $SK_{pr}$ lets the peers detect a PPK mismatch cleanly. The keys
+$SK_e$ and $SK_a$ of the \emph{initial} IKE SA, however, are still derived from
+the classical exchange alone. An HNDL adversary can therefore later decrypt the
+content of \texttt{IKE\_AUTH}, including the peers' identities. Moreover, the
+PPK is mixed in only once, when the initial IKE SA is created, so a new PPK
+cannot be introduced without creating a new IKE SA from scratch.
+
+\paragraph{RFC~9867.}
+RFC~9867~\cite{rfc9867} removes both limitations. When \texttt{USE\_PPK\_INT}
+is negotiated together with \texttt{IKE\_INTERMEDIATE}, the initiator offers
+one or more PPK identities in the last \texttt{IKE\_INTERMEDIATE} exchange.
+Each identity is sent in a \texttt{PPK\_IDENTITY\_KEY} notification with an
+8-byte confirmation value, so that the responder can check that it holds the
+same key. Once a PPK is selected, \emph{all} IKE SA keys are recomputed from
+$\mathit{SKEYSEED}' = \mathrm{prf+}(\mathit{PPK}, SK_d)$ before
+\texttt{IKE\_AUTH}, so the initial IKE SA is protected as well. If RFC~9370
+key exchanges take place in the same exchange, the PPK is applied after them.
+In addition, a fresh PPK, for example one supplied by quantum key distribution,
+can be mixed into a \texttt{CREATE\_CHILD\_SA} exchange as
+$SK_d' = \mathrm{prf+}(\mathit{PPK}, SK_d)$ without re-creating the IKE SA.
+
+PPKs and post-quantum KEMs are complementary. A PPK needs no new algorithm and
+adds almost no bytes, but it requires out-of-band distribution and management
+of a symmetric secret for every pair of peers, which scales poorly.
+% CHECK: scope decision -- PPK is not in the configuration matrix of ROADMAP §4.2.
+This thesis evaluates KEM-based hybrid key exchange; PPKs are discussed here
+for completeness and in Chapter~\ref{sec:reco} as a migration option.
 
 \subsubsection{Post-quantum authentication}
-\placeholder{Short note; out of scope.}
-% TODO: Short note only. Authentication with ML-DSA/SLH-DSA in IKEv2 is
-% being specified separately; state it is out of scope and why
-% (see Section~\ref{sec:sota-quantum}: no HNDL risk for authentication).
+\label{sec:sota-pqauth}
+
+The use of the post-quantum signature schemes ML-DSA~\cite{fips204} and
+SLH-DSA~\cite{fips205} for IKEv2 authentication is specified separately in
+\texttt{draft-ietf-ipsecme-ikev2-pqc-auth}~\cite{ikev2pqcauth}, which was also
+in the RFC Editor queue as of October 2026. Post-quantum authentication is
+outside the scope of this thesis. As explained in
+Section~\ref{sec:sota-quantum}, a signature only has to resist forgery at the
+moment the handshake takes place, so authentication is not exposed to HNDL
+and its migration is less urgent. Larger post-quantum certificates and
+signatures enlarge only the \texttt{IKE\_AUTH} messages, which RFC~7383 can
+already fragment. Keeping classical authentication constant across all tested
+configurations also isolates the cost of the key exchange.
 
 %---------------------------------------------------------------------------
 \subsection{Post-quantum cryptography on constrained and IoT devices}
 \label{sec:sota-iot}
-\placeholder{Cost of ML-KEM on embedded platforms; IPsec in IoT gateways; constrained links.}
-% TODO:
-%  - pqm4~\cite{pqm4} benchmarks of ML-KEM on Cortex-M4; ARM Cortex-A figures.
-%  - Typical IoT gateway hardware and why IPsec/IKEv2 is used there.
-%  - Constrained links (LTE-M, NB-IoT): latency, bandwidth, MTU, loss -- why
-%    large fragmented IKE messages are a particular problem there.
-%  - Device lifetime vs HNDL; crypto-agility of deployed devices.
+
+\paragraph{Cost of ML-KEM on embedded platforms.}
+The reference benchmark for post-quantum schemes on microcontrollers is
+pqm4~\cite{pqm4}, which targets the ARM Cortex-M4. Table~\ref{tab:pqm4}
+shows its current figures for ML-KEM. Even on this low-end core a complete
+ML-KEM-768 key exchange (KeyGen, Encaps and Decaps) takes about two million
+cycles and a few kilobytes of stack, i.e.\ tens of milliseconds at typical
+microcontroller clock frequencies. A complete hybrid IKEv2 implementation on
+a Cortex-M4F confirms that the computational overhead is small compared with
+the overall handshake time~\cite{bahaaeldin2026}. The main cost of ML-KEM
+therefore lies in the size of the transmitted data rather than in computation.
+% TODO: add a Cortex-A (Raspberry Pi class) reference if one is found; otherwise
+% state that the thesis measures it itself (Chapter 6).
+IoT gateways, which typically use ARM Cortex-A application processors, are
+considerably more capable than Cortex-M microcontrollers. Published figures
+for complete IKEv2 implementations on such gateways are scarce, which is one
+of the reasons this thesis measures them directly (Chapter~\ref{sec:results}).
+
+\begin{table}[!h] \centering
+    \caption{ML-KEM on ARM Cortex-M4 (pqm4, speed-optimised \texttt{m4fspeed}
+    implementation, average of 10 executions)~\cite{pqm4bench}.}
+    \label{tab:pqm4}
+    \begin{tabular}{| l | r | r | r | r |} \hline
+        Parameter set & KeyGen [cycles] & Encaps [cycles] & Decaps [cycles] & Max.\ stack [B] \\ \hline\hline
+        ML-KEM-512  &   392\,423 &   390\,881 &   428\,167 & 5\,436 \\ \hline
+        ML-KEM-768  &   642\,096 &   658\,754 &   707\,827 & 6\,468 \\ \hline
+        ML-KEM-1024 & 1\,018\,976 & 1\,031\,565 & 1\,094\,008 & 7\,500 \\ \hline
+    \end{tabular}
+\end{table}
+
+\paragraph{IPsec in IoT gateways.}
+RFC~7228~\cite{rfc7228} classifies constrained nodes by memory and code size.
+The smallest devices usually cannot run a full IKEv2/IPsec stack. A common
+architecture is therefore one in which constrained devices communicate with
+a local \emph{gateway} that runs a general-purpose operating system and
+connects the site to a back-end over an IPsec tunnel. Such gateways are
+typically built on ARM single-board computers. They are often connected over
+cellular IoT links and frequently remain in the field for many years.
+
+\paragraph{Constrained links.}
+Cellular IoT technologies such as LTE-M and NB-IoT trade throughput for
+coverage and energy efficiency. Compared with a wired LAN, they have
+round-trip times of hundreds of milliseconds to seconds, low bandwidth,
+non-negligible packet loss, and sometimes a reduced MTU.
+% TODO: cite 3GPP / operator figures for latency, bandwidth and MTU; the same
+% sources define the network profiles in Chapter 5.
+Each of these properties amplifies the overhead of hybrid key exchange.
+Every additional round trip in Table~\ref{tab:rtt} costs one RTT, which on
+such links dominates computation. Larger messages take longer to serialise.
+Fragmentation multiplies the effect of loss. At the 576-byte IPv4 threshold
+recommended by RFC~7383, the 1192-byte ML-KEM-768 KE payload alone is split
+into at least three IKE fragments, whereas on a 1500-byte path it fits in
+a single datagram. If packets are lost independently with probability $p$,
+a message of $k$ fragments arrives intact with probability $(1-p)^k$, and any
+loss triggers retransmission of the whole message after a timeout.
+Measurements of post-quantum TLS~\cite{paquin2020} and, more recently, of
+post-quantum IKEv2~\cite{twardokus2025,rahul2026} have confirmed that
+handshakes whose messages span many packets degrade sharply at loss rates of
+a few per~cent (Section~\ref{sec:sota-impl}).
+
+\paragraph{Device lifetime and crypto-agility.}
+Mosca's inequality~\cite{mosca2018} captures why long-lived devices are
+exposed. If $x$ is the time for which data must remain confidential, $y$ the
+time needed to migrate the infrastructure, and $z$ the time until a CRQC
+exists, then data is at risk whenever $x + y > z$. An IoT gateway deployed today
+may stay in service for a decade or more, which makes $y$ large. Unless its
+key exchange can be replaced in the field, by a software update and a change of
+configuration, the device itself becomes the bottleneck of the migration.
+Crypto-agility of the VPN implementation, meaning support for negotiating new
+key exchange methods without changes to the protocol, is therefore
+a prerequisite for IoT deployments.
 
 %---------------------------------------------------------------------------
 \subsection{Implementations and related work}
 \label{sec:sota-impl}
-\placeholder{strongSwan, Libreswan; published measurements; research gap.}
-% TODO:
-%  - Open-source IKEv2 daemons and their PQC support: strongSwan, Libreswan
-%    (versions, which RFCs and transforms they implement). This decides
-%    which VPN is chosen for the implementation part.
-%  - Published measurements of PQ/hybrid IKEv2 (handshake latency, message
-%    sizes, number of fragments, CPU cost), plus TLS 1.3 hybrid studies
-%    for comparison.
-%  - Identify what those works do *not* measure -> the gap this thesis fills.
+
+\paragraph{Open-source IKEv2 implementations.}
+The two most widely used open-source IKEv2 daemons for Linux both implement
+standardised post-quantum hybrid key exchange.
+% TODO: check OpenBSD iked (non-standard hybrid groups in IKE_SA_INIT) and
+% mention it briefly if relevant.
+Table~\ref{tab:impl} summarises their support, based on their release notes.
+% TODO: re-check versions right before the lab build (P2) and before submission.
+\begin{itemize}
+    \item \textbf{strongSwan}~\cite{strongswan} added RFC~9242 and RFC~9370,
+    including \texttt{IKE\_FOLLOWUP\_KE}, in version~6.0.0 (December 2024).
+    ML-KEM is provided by several crypto plugins: its own \texttt{ml} plugin,
+    Botan, wolfSSL, and OpenSSL (initially only when built against AWS-LC,
+    and with OpenSSL~3.5 or later since version~6.0.2). Additional key
+    exchanges are configured with \texttt{ke1\_}\ldots\texttt{ke7\_} prefixes
+    in proposals, e.g.\ \texttt{aes256gcm16-prfsha384-x25519-ke1\_mlkem768}.
+    The current release is 6.1.0, which disables IKEv1 by default.
+    \item \textbf{Libreswan}~\cite{libreswan} has supported RFC~8784 PPKs for
+    a long time. Version~5.2 added PPKs in \texttt{IKE\_INTERMEDIATE}, based
+    on a draft of what became RFC~9867. Version~5.4 (August 2026) updated
+    \texttt{IKE\_INTERMEDIATE} to RFC~9370, implemented
+    \texttt{IKE\_FOLLOWUP\_KE}, and added ML-KEM-768 (but not the other
+    parameter sets) through NSS~3.118.1 or later.
+\end{itemize}
+The choice between them for the practical part is made in
+Section~\ref{sec:analysis-vpn}.
+
+\begin{table}[!h] \centering
+    \caption{Post-quantum features of open-source IKEv2 daemons (October 2026).}
+    \label{tab:impl}
+    \begin{tabular}{| p{0.36\linewidth} | p{0.26\linewidth} | p{0.26\linewidth} |} \hline
+        Feature & strongSwan 6.1 & Libreswan 5.4 \\ \hline\hline
+        RFC~7383 fragmentation          & yes & yes \\ \hline
+        RFC~9242 \texttt{IKE\_INTERMEDIATE} & yes (since 6.0) & yes \\ \hline
+        RFC~9370 additional KEs         & yes (since 6.0) & yes (since 5.4) \\ \hline
+        \texttt{IKE\_FOLLOWUP\_KE}      & yes (since 6.0) & yes (since 5.4) \\ \hline
+        ML-KEM parameter sets           & 512, 768, 1024 & 768 only \\ \hline
+        ML-KEM crypto backend           & ml, Botan, wolfSSL, OpenSSL~3.5+/AWS-LC & NSS~3.118.1+ \\ \hline
+        RFC~8784 PPK                    & \textit{verify} & yes \\ \hline
+    \end{tabular}
+\end{table}
+% TODO: verify strongSwan's RFC 8784 support (older ChangeLog, 5.x series) and
+% both daemons' RFC 9867 status; fill in the table.
+
+\paragraph{Published measurements.}
+Post-quantum key exchange has been benchmarked most extensively in TLS.
+Paquin et al.~\cite{paquin2020} built an emulated network testbed with
+controlled latency and loss. They found that loss rates above roughly
+3--5\,\% significantly slow down handshakes whose messages span many packets,
+whereas in real-network experiments latency hid most of the impact of slower
+computation.
+Bürstinghaus-Steinbach et al.~\cite{burstinghaus2020} integrated Kyber, the
+predecessor of ML-KEM, and SPHINCS+ into mbed~TLS and evaluated them on
+embedded devices.
+
+Measurements of post-quantum IKEv2 are more recent. Table~\ref{tab:relwork}
+summarises the studies known to the author; their findings fall into three
+groups.
+
+\begin{table}[!h] \centering
+    \footnotesize
+    \caption{Published measurements of post-quantum IKEv2 compared with this
+    thesis. ``Initial'' means establishment of the first IKE SA (and Child SA)
+    only.}
+    \label{tab:relwork}
+    \begin{tabular}{| p{0.14\linewidth} | p{0.21\linewidth} | p{0.22\linewidth} | p{0.09\linewidth} | p{0.22\linewidth} |} \hline
+        Work & Implementation, platform & Key exchange (authentication) & Procedures & Network conditions \\ \hline\hline
+        Bae et al.~\cite{bae2023}
+            & strongSwan + liboqs, x86
+            & Kyber, NTRU, Saber (pre-standard)
+            & initial
+            & laboratory network \\ \hline
+        Mutlugun et al.~\cite{mutlugun2024}
+            & simulation
+            & PQ KEMs (PQ signatures)
+            & initial
+            & satellite: loss, long delay \\ \hline
+        Twardokus et al.~\cite{twardokus2025}
+            & strongSwan 6.0.2 + liboqs, Linux hosts (FABRIC, laptops)
+            & MODP-2048 vs.\ ML-KEM-768 (ML-DSA-87)
+            & initial
+            & Internet paths, 0--10\,\% bursty loss; Wi-Fi, 10--20\,\% loss \\ \hline
+        He et al.~\cite{he2025}
+            & modified strongSwan
+            & fragmented PQ key exchange
+            & initial
+            & lossy links \\ \hline
+        Blanco-Romero et al.~\cite{blancoromero2025}
+            & strongSwan 6.0 + QKD hardware, Docker
+            & Kyber/ML-KEM, HQC, FrodoKEM, QKD; sequential vs.\ parallel
+            & initial
+            & delay, jitter, loss \\ \hline
+        De Zuane et al.~\cite{dezuane2026}
+            & Minimal IKE initiator vs.\ strongSwan
+            & ML-KEM-512 only (PSK)
+            & initial
+            & not studied \\ \hline
+        Bahaa-Eldin et al.~\cite{bahaaeldin2026}
+            & CycloneTCP on Cortex-M4F, Python responder
+            & P-384 + ML-KEM-768 (ECDSA)
+            & initial
+            & LAN, no impairment \\ \hline
+        Rahul et al.~\cite{rahul2026}
+            & modified strongSwan 6.0 + liboqs, Docker, x86
+            & X25519/P-256/P-384 + ML-KEM-768/1024, hybrid vs.\ composite over TCP (ML-DSA)
+            & initial
+            & 0--10\,\% loss (one direction), 0--10~ms delay \\ \hline\hline
+        \textbf{This thesis}
+            & unmodified open-source daemon, x86 and ARM gateway
+            & classical vs.\ classical + ML-KEM (classical, constant)
+            & initial, all rekeys, reauth.
+            & LAN and emulated LTE-M-/NB-IoT-like links (RTT, rate, loss, MTU) \\ \hline
+    \end{tabular}
+\end{table}
+% TODO: Bae, Mutlugun and He are closed access -- their rows rest on the
+% abstracts (and, for Bae, on the description in bahaaeldin2026). Check the
+% full texts via the university library.
+
+\subparagraph{Cost on reliable links is small.}
+On reliable links, hybrid key exchange adds little to SA establishment.
+On a Cortex-M4F microcontroller, P-384 + ML-KEM-768 added 98.2~ms (2.9\,\%) to
+a mean establishment time of about 3.4~s, most of which is spent in
+classical elliptic-curve computation, and 42\,\% to the total IKEv2 traffic. It also required the IKE task
+stack to grow from 0.5 to 4~kB~\cite{bahaaeldin2026}. Over Internet paths without
+added loss, Twardokus et al.\ measured differences of a few tens of
+milliseconds between classical and post-quantum setups. However, the two
+distributions decorrelate as the RTT grows, which the authors attribute to the
+larger number of UDP packets~\cite{twardokus2025}. Without loss, Rahul et al.\
+measured 11.6--16.0~ms per handshake on a single host, depending on the groups,
+with differences below 1~ms between their transport variants~\cite{rahul2026}. On the memory side, De Zuane et al.\ found
+a strongSwan initiator with ML-KEM-512 to need about 6.7~MB on average, against
+1.75~MB for their Minimal IKE implementation~\cite{dezuane2026}.
+
+\subparagraph{Loss is the dominant problem.}
+Once packets are lost, the picture changes. Twardokus et al.\ report that at
+8\,\% loss the 95th percentile of data transmitted during setup grows from
+25.6~kB (classical) to 1.3~MB (post-quantum). At 12\,\% loss on Wi-Fi it grows
+from 49.8~kB to 22.1~MB, and individual setups reach nearly 200~MB at
+20\,\%~\cite{twardokus2025}. They attribute this to the full-message
+retransmission of IKEv2 over UDP combined with the many fragments produced
+under RFC~9242 and RFC~9370, the mechanism described in
+Section~\ref{sec:sota-iot}. Rahul et al.\ observe the same effect in time.
+For X25519 + ML-KEM-768, the mean hybrid handshake grows from 11.7~ms without
+loss to 58.8~ms at 1\,\% and 582~ms at 10\,\% loss, when 74--76\,\% of
+handshakes hit the 1~s retransmission timeout~\cite{rahul2026}. For satellite
+links, Mutlugun et al.\ found that loss causes significant overhead, although
+long propagation delays can partly mask it~\cite{mutlugun2024}.
+
+\subparagraph{Proposed protocol changes.}
+Several authors propose changes to the standard mechanism. He et al.\ add
+selective retransmission of IKE fragments using bitmap acknowledgements and
+report more than 60\,\% less additional transmission under
+loss~\cite{he2025}. Rahul et al.\ send the classical and post-quantum keys as
+one composite key over TCP while ESP stays on UDP. This is 20--30\,\% faster
+than hybrid key exchange at 1--10\,\% loss and saves up to 29\,\% of
+energy~\cite{rahul2026}. Blanco-Romero et al.\ show that the sequential
+composition of RFC~9370, with one round trip per additional key exchange,
+is penalised under latency compared with a parallel
+composition~\cite{blancoromero2025}. These proposals are not standardised.
+They confirm, however, that the cost of the standardised mechanism lies in
+round trips and fragmentation rather than in computation.
+
+\paragraph{Research gap.}
+First, all the IKEv2 studies in Table~\ref{tab:relwork} measure only the
+\emph{initial} establishment of an SA. Bahaa-Eldin et al.\ explicitly exclude
+rekeying~\cite{bahaaeldin2026}, and Minimal IKE does not support it at
+all~\cite{dezuane2026}. Yet a long-lived tunnel performs the procedures of
+Table~\ref{tab:rtt}, Child SA rekeys with PFS, IKE SA rekeys and
+reauthentication, many times over its lifetime. Under RFC~9370 each of them
+gains an \texttt{IKE\_FOLLOWUP\_KE} round trip and fragmented messages. Second,
+the platforms studied are either x86 hosts or a microcontroller, not an ARM
+application-class gateway running a production daemon. Third, the study closest
+to this thesis~\cite{twardokus2025} changes the key exchange and the
+authentication at the same time and compares against MODP-2048, while Rahul
+et al.\ compare post-quantum variants only. Neither isolates the cost of the
+hybrid key exchange against a modern classical baseline. Finally, to the
+author's knowledge, no study emulates the combination of long RTT, low
+bandwidth and reduced MTU that is typical of cellular IoT links. This thesis addresses these four points. It
+measures every procedure of Table~\ref{tab:rtt} with standardised RFC~9370
+hybrid key exchange and constant classical authentication, on a regular host
+and on an ARM IoT-class gateway, over a LAN and emulated constrained links.
 
 %---------------------------------------------------------------------------
 \subsection{Regulatory context of the post-quantum migration}
 \label{sec:sota-regulatory}
-\placeholder{Legal and supervisory drivers for the migration in the EU and Poland.}
-% TODO:
-%  - Polish Act on the National Cybersecurity System (UKSC)~\cite{uksc}: who is
-%    covered (operators of essential services, banking sector), obligations
-%    on risk management and security measures. Check the current consolidated
-%    text and the status of the NIS2-implementing amendment.
-%  - NIS2~\cite{nis2} and DORA~\cite{dora}: how they apply to banks and how
-%    they relate to UKSC (lex specialis for financial entities).
-%  - EU coordinated PQC transition roadmap~\cite{euPqcRoadmap}, NIST IR 8547
-%    timelines (Section~\ref{sec:sota-quantum}).
-%  - Keep this descriptive; recommendations go to Section~\ref{sec:reco}.
+
+This section describes the legal and supervisory framework that applies to
+operators of VPNs in the EU financial sector. Recommendations derived from it
+are given in Chapter~\ref{sec:reco}.
+
+\paragraph{NIS2.}
+Directive (EU) 2022/2555 (NIS2)~\cite{nis2} sets cybersecurity obligations
+for essential and important entities in a list of sectors that includes
+banking and financial market infrastructures. Member states had to transpose it
+by 17~October~2024. Among the risk-management measures that entities must take,
+Article~21(2)(h) explicitly lists policies and procedures regarding the use of
+cryptography and, where appropriate, encryption. NIS2 does not name
+algorithms. Article~4, however, provides that where a sector-specific Union act
+imposes at least equivalent requirements, that act applies instead.
+
+\paragraph{DORA.}
+Regulation (EU) 2022/2554 (DORA)~\cite{dora}, applicable since
+17~January~2025, is such a sector-specific act for financial entities.
+Article~1(2) of DORA states that this is the case for the purposes of
+Article~4 of NIS2. Its regulatory technical standards on ICT risk
+management~\cite{dorarts} require each financial entity to maintain a policy
+on encryption and cryptographic controls (Article~6). That policy must cover,
+among other things, data in transit and network connections. It must also
+contain provisions for updating or changing the cryptographic technology
+\emph{on the basis of developments in cryptanalysis} (Article~6(4)).
+Neither act mentions quantum computing explicitly. However, the obligation to
+follow developments in cryptanalysis and to keep cryptography resilient
+against cyber threats applies directly to the quantum threat described in
+Section~\ref{sec:sota-quantum}.
+
+\paragraph{The Polish UKSC.}
+In Poland, NIS2 is transposed by amending the Act of 5~July~2018 on the
+National Cybersecurity System (UKSC)~\cite{uksc}. The amending act of
+23~January~2026~\cite{uksc2026} was published on 2~March~2026 and entered
+into force one month later. It replaces the earlier categories of operators
+of essential services with the NIS2 categories of key and important entities.
+For key and important entities in the banking and financial market
+infrastructure sectors, the new Article~8i reflects the precedence of DORA.
+The provisions on the information security management system and on reporting
+serious incidents do not apply to them, apart from an explicitly listed set of
+provisions that remain applicable. For a bank, therefore, the technical
+requirements on cryptography come primarily from DORA and its standards, while
+only a limited set of UKSC provisions continues to apply.
+% TODO: have the description of art. 8i checked by someone with legal
+% background; keep it descriptive.
+
+\paragraph{Migration timelines.}
+None of the acts above sets a date for post-quantum migration. Timelines come
+from coordinated recommendations. The EU coordinated implementation
+roadmap~\cite{euPqcRoadmap}, prepared by the NIS Cooperation Group and
+published in June 2025, asks member states to start national transitions and
+define roadmaps by the end of 2026. High-risk use cases should be migrated by
+the end of 2030, and the transition should be completed by 2035. BSI explicitly aligns its guideline with this 2035
+horizon~\cite{bsiTr02102}. In the United States, NIST IR~8547 proposes
+deprecating quantum-vulnerable algorithms at the 112-bit security level after
+2030 and disallowing them after 2035~\cite{nistir8547}. Because VPN key
+exchange is exposed to HNDL (Section~\ref{sec:sota-quantum}), VPNs that carry
+long-lived confidential data are natural candidates for the high-risk
+category.
 
 %---------------------------------------------------------------------------
 \subsection{Summary}
 \label{sec:sota-summary}
-\placeholder{Write last.}
-% TODO: write last. 1-2 paragraphs: what is standardised, what is still a
-% draft, what remains to be measured, and how this motivates the next chapter.
+
+The building blocks for post-quantum key exchange in IKEv2 are in place.
+ML-KEM is standardised in FIPS~203. IKE fragmentation (RFC~7383), the
+\texttt{IKE\_INTERMEDIATE} exchange (RFC~9242) and multiple key exchanges
+(RFC~9370) allow a hybrid of a classical and a post-quantum key exchange to be
+negotiated for the initial SA and for every rekey. Post-quantum preshared keys
+(RFC~8784, RFC~9867) offer a complementary, algorithm-free alternative. The
+specification of ML-KEM in IKEv2 and of post-quantum authentication are both
+in the final stage of publication, and both major open-source daemons now
+implement hybrid key exchange. European and national regulation does not
+prescribe algorithms, but it requires financial entities to keep their
+cryptography up to date with cryptanalysis, and the EU roadmap sets 2030 for
+high-risk use cases.
+
+Published measurements show that hybrid key exchange costs little on
+reliable links but degrades sharply under packet loss, because fragmented
+messages are retransmitted as a whole. These studies, however, cover only the
+initial establishment of an SA, on x86 hosts or a microcontroller. Hybrid key
+exchange adds round trips and roughly a kilobyte per direction to
+\emph{every} procedure that performs a key exchange, including Child SA rekeys
+with PFS, IKE SA rekeys and reauthentication. The cost of these procedures on
+an ARM IoT-class gateway and over emulated cellular IoT links has not been
+measured. The next
+chapter turns this gap into the problem statement and requirements of the
+thesis.
