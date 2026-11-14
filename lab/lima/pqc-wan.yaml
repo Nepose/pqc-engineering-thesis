@@ -1,0 +1,11 @@
+# Router between the peers: impairment (netem, MTU, fragment filter) and captures with one clock.
+minimumLimaVersion: 2.0.0
+vmType: vz
+plain: true
+cpus: 1
+memory: 1GiB
+disk: 10GiB
+images:
+- location: "https://cloud-images.ubuntu.com/releases/noble/release-20260926/ubuntu-24.04-server-cloudimg-arm64.img"
+  arch: "aarch64"
+  digest: "sha256:1d6bffe64b848468ac97f821d369a4846d983de1800ccf6b5ec8853e85cefc55"

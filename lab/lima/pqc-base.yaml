@@ -1,0 +1,13 @@
+# Golden image: strongSwan is built here once (L1); pqc-ini and pqc-resp are clones,
+# so both peers run identical binaries. Networks are attached at clone time (lab.sh).
+minimumLimaVersion: 2.0.0
+vmType: vz
+# No host mounts: lab.sh copies lab/ into the VM.
+plain: true
+cpus: 2
+memory: 2GiB
+disk: 20GiB
+images:
+- location: "https://cloud-images.ubuntu.com/releases/noble/release-20260926/ubuntu-24.04-server-cloudimg-arm64.img"
+  arch: "aarch64"
+  digest: "sha256:1d6bffe64b848468ac97f821d369a4846d983de1800ccf6b5ec8853e85cefc55"
