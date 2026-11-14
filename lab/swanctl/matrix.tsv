@@ -1,0 +1,12 @@
+# Configuration matrix (thesis §4.2), tab-separated. Only the key exchange varies.
+# "ke1_" = additional key exchange (RFC 9370), carried in IKE_INTERMEDIATE.
+# TODO: the classical group of the hybrids awaits the supervisor's answer.
+#id	ke	role
+c1	x25519	classical baseline
+c2	ecp256	optional legacy/compliance baseline
+p512	mlkem512	pure PQ
+p768	mlkem768	pure PQ (IP fragmentation of IKE_SA_INIT expected on small-MTU paths)
+p1024	mlkem1024	pure PQ (IP fragmentation of IKE_SA_INIT expected at MTU 1500)
+h512	x25519-ke1_mlkem512	hybrid
+h768	x25519-ke1_mlkem768	hybrid (main configuration)
+h1024	x25519-ke1_mlkem1024	hybrid
