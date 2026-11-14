@@ -24,3 +24,7 @@ test/**/*.pdf
 # macOS and editor workspace files
 .DS_Store
 *.code-workspace
+
+# Lab: raw measurement data (see results/README.md) and key material
+/results/raw/
+*.pem
