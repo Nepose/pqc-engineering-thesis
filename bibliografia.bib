@@ -273,7 +273,7 @@
     type        = {RFC},
     number      = {7383},
     institution = {RFC Editor},
-    year        = {2015},
+    year        = {2014},
     month       = nov,
     doi         = {10.17487/RFC7383}
 }
@@ -322,33 +322,72 @@
     doi         = {10.17487/RFC9370}
 }
 
-% TODO fill in authors, exact title and date from rfc-editor.org
 @techreport{rfc9867,
-    author      = {{TODO}},
-    title       = {Mixing Preshared Keys in the {IKE\_INTERMEDIATE} and in the {CREATE\_CHILD\_SA} Exchanges of {IKEv2} for Post-quantum Security},
+    author      = {Smyslov, V.},
+    title       = {Mixing Preshared Keys in the {IKE\_INTERMEDIATE} and {CREATE\_CHILD\_SA} Exchanges of the {I}nternet {K}ey {E}xchange Protocol Version 2 ({IKEv2}) for Post-Quantum Security},
     type        = {RFC},
     number      = {9867},
     institution = {RFC Editor},
     year        = {2025},
+    month       = nov,
     doi         = {10.17487/RFC9867}
 }
 
-% TODO set the draft version (-NN) you actually read and its date
+% In the RFC Editor queue as of Oct 2026 -- replace with the RFC number once published.
 @misc{ikev2mlkem,
     author       = {Kampanakis, P.},
-    title        = {Post-quantum Hybrid Key Exchange with {ML-KEM} in the {I}nternet {K}ey {E}xchange Protocol Version 2 ({IKEv2})},
-    howpublished = {Internet-Draft draft-ietf-ipsecme-ikev2-mlkem, IETF},
-    url          = {https://datatracker.ietf.org/doc/draft-ietf-ipsecme-ikev2-mlkem/},
-    year         = {2025}
+    title        = {Post-quantum Key Exchange with {ML-KEM} in the {I}nternet {K}ey {E}xchange Protocol Version 2 ({IKEv2})},
+    howpublished = {Internet-Draft draft-ietf-ipsecme-ikev2-mlkem-09, IETF},
+    url          = {https://datatracker.ietf.org/doc/draft-ietf-ipsecme-ikev2-mlkem/09/},
+    year         = {2026},
+    month        = jul
 }
 
-% TODO: cite the current consolidated text (tekst jednolity) and check the
-% status of the NIS2-implementing amendment before submission.
+% In the RFC Editor queue as of Oct 2026 -- replace with the RFC number once published.
+@misc{ikev2pqcauth,
+    author       = {Reddy, T. and Smyslov, V. and Fluhrer, S.},
+    title        = {Signature Authentication in the {I}nternet {K}ey {E}xchange Version 2 ({IKEv2}) using {PQC}},
+    howpublished = {Internet-Draft draft-ietf-ipsecme-ikev2-pqc-auth-12, IETF},
+    url          = {https://datatracker.ietf.org/doc/draft-ietf-ipsecme-ikev2-pqc-auth/12/},
+    year         = {2026},
+    month        = aug
+}
+
+@techreport{rfc6023,
+    author      = {Nir, Y. and Tschofenig, H. and Deng, H. and Singh, R.},
+    title       = {A Childless Initiation of the {I}nternet {K}ey {E}xchange Version 2 ({IKEv2}) Security Association ({SA})},
+    type        = {RFC},
+    number      = {6023},
+    institution = {RFC Editor},
+    year        = {2010},
+    month       = oct,
+    doi         = {10.17487/RFC6023}
+}
+
+@techreport{rfc7228,
+    author      = {Bormann, C. and Ersue, M. and Keranen, A.},
+    title       = {Terminology for Constrained-Node Networks},
+    type        = {RFC},
+    number      = {7228},
+    institution = {RFC Editor},
+    year        = {2014},
+    month       = may,
+    doi         = {10.17487/RFC7228}
+}
+
+% Consolidated text Dz.U. 2026 poz. 20; amended by Dz.U. 2026 poz. 252 (uksc2026).
+% TODO before submission: check for a newer consolidated text that includes poz. 252.
 @misc{uksc,
     author       = {{Sejm Rzeczypospolitej Polskiej}},
     title        = {Ustawa z dnia 5 lipca 2018 r. o krajowym systemie cyberbezpieczeństwa},
-    howpublished = {Dz.U. 2018 poz. 1560, with amendments},
+    howpublished = {Dz.U. 2026 poz. 20, consolidated text},
     year         = {2018}
+}
+@misc{uksc2026,
+    author       = {{Sejm Rzeczypospolitej Polskiej}},
+    title        = {Ustawa z dnia 23 stycznia 2026 r. o zmianie ustawy o krajowym systemie cyberbezpieczeństwa oraz niektórych innych ustaw},
+    howpublished = {Dz.U. 2026 poz. 252},
+    year         = {2026}
 }
 
 @misc{nis2,
@@ -365,12 +404,167 @@
     year         = {2022}
 }
 
-% TODO verify exact title, publisher and date
+% Document is labelled "Part 1, Version 1.1, 11.06.2025"; published 23 June 2025.
+% TODO add the official European Commission URL.
 @misc{euPqcRoadmap,
     author       = {{NIS Cooperation Group}},
     title        = {A Coordinated Implementation Roadmap for the Transition to Post-Quantum Cryptography},
-    howpublished = {European Commission},
-    year         = {2025}
+    howpublished = {Part 1, Version 1.1, European Commission},
+    year         = {2025},
+    month        = jun
+}
+@misc{dorarts,
+    author       = {{European Commission}},
+    title        = {Commission Delegated Regulation ({EU}) 2024/1774 supplementing Regulation ({EU}) 2022/2554 with regard to regulatory technical standards specifying {ICT} risk management tools, methods, processes, and policies and the simplified {ICT} risk management framework},
+    howpublished = {Official Journal of the European Union, L series, 2024/1774},
+    year         = {2024}
+}
+@techreport{bsiTr02102,
+    author      = {{Bundesamt für Sicherheit in der Informationstechnik}},
+    title       = {Cryptographic Mechanisms: Recommendations and Key Lengths},
+    type        = {Technical Guideline},
+    number      = {BSI TR-02102-1, Version 2026-01},
+    institution = {BSI},
+    year        = {2026},
+    month       = jan
+}
+% TODO verify: the PDF could not be downloaded automatically; check title and date.
+@techreport{anssi2023,
+    author      = {{Agence nationale de la sécurité des systèmes d'information}},
+    title       = {{ANSSI} views on the Post-Quantum Cryptography transition (2023 follow up)},
+    type        = {Position paper},
+    institution = {ANSSI},
+    year        = {2023},
+    month       = dec
+}
+% TODO verify: exact title and full list of signatories.
+@misc{jointPqc2024,
+    author       = {{ANSSI and BSI and NLNCSA and others}},
+    title        = {Securing Tomorrow, Today: Transitioning to Post-Quantum Cryptography},
+    howpublished = {Joint statement of 18 EU member states},
+    year         = {2024},
+    month        = nov
+}
+@article{mosca2018,
+    author  = {Mosca, Michele},
+    title   = {Cybersecurity in an Era with Quantum Computers: Will We Be Ready?},
+    journal = {IEEE Security \& Privacy},
+    volume  = {16},
+    number  = {5},
+    pages   = {38--41},
+    year    = {2018},
+    doi     = {10.1109/MSP.2018.3761723}
+}
+@inproceedings{paquin2020,
+    author    = {Paquin, Christian and Stebila, Douglas and Tamvada, Goutam},
+    title     = {Benchmarking Post-quantum Cryptography in {TLS}},
+    booktitle = {Post-Quantum Cryptography (PQCrypto 2020)},
+    series    = {Lecture Notes in Computer Science},
+    volume    = {12100},
+    pages     = {72--91},
+    publisher = {Springer},
+    year      = {2020},
+    doi       = {10.1007/978-3-030-44223-1_5}
+}
+@inproceedings{burstinghaus2020,
+    author    = {B{\"u}rstinghaus-Steinbach, Kevin and Krau{\ss}, Christoph and Niederhagen, Ruben and Schneider, Michael},
+    title     = {Post-Quantum {TLS} on Embedded Systems: Integrating and Evaluating {Kyber} and {SPHINCS+} with mbed {TLS}},
+    booktitle = {Proceedings of the 15th ACM Asia Conference on Computer and Communications Security (ASIA CCS)},
+    pages     = {841--852},
+    year      = {2020},
+    doi       = {10.1145/3320269.3384725}
+}
+@article{bahaaeldin2026,
+    author  = {Bahaa-Eldin, Ahmed Ayman and El-Kharashi, Mohamed Watheq and Abdullah, Bassem},
+    title   = {Hybrid Post-Quantum {IKEv2} on Embedded Automotive Platforms: Design, Implementation, and Evaluation},
+    journal = {Electronics},
+    volume  = {15},
+    number  = {15},
+    pages   = {3340},
+    year    = {2026},
+    doi     = {10.3390/electronics15153340}
+}
+@inproceedings{twardokus2025,
+    author    = {Twardokus, Geoff and Joslin, William and Rahbari, Hanif and Layton, William},
+    title     = {Assessing the Viability of Quantum-Resistant {IKEv2} over Constrained and Internet-Scale Networks},
+    booktitle = {Proceedings of the 2025 Quantum Security and Privacy Workshop (QSec '25)},
+    pages     = {28--33},
+    publisher = {ACM},
+    year      = {2025},
+    doi       = {10.1145/3733825.3765281}
+}
+% Closed access -- described from the abstract only.
+@inproceedings{he2025,
+    author    = {He, Xuejie and Han, Lei and Jiang, Ziming},
+    title     = {Performance Analysis and Selective Retransmission Optimization for Fragmented Post-Quantum {IKEv2}},
+    booktitle = {2025 IEEE International Conference on Blockchain Technology and Information Security (ICBCTIS)},
+    pages     = {1--9},
+    year      = {2025},
+    doi       = {10.1109/ICBCTIS66509.2025.11387151}
+}
+% Closed access -- described from the abstract only.
+@inproceedings{mutlugun2024,
+    author    = {Mutlugun, Ahmet and Hanna, Yacoub and Akkaya, Kemal},
+    title     = {Performance Evaluation of Quantum-Resistant {IKEv2} Protocol for Satellite Networking Environments},
+    booktitle = {2024 IEEE Virtual Conference on Communications (VCC)},
+    pages     = {1--7},
+    year      = {2024},
+    doi       = {10.1109/VCC63113.2024.10914395}
+}
+% Closed access -- described from secondary sources (bahaaeldin2026, rahul2026); read before citing further.
+@inproceedings{bae2023,
+    author    = {Bae, Seungyeon and Chang, Yousung and Park, Hyeongjin and Kim, Minseo and Shin, Youngjoo},
+    title     = {A Performance Evaluation of {IPsec} with Post-Quantum Cryptography},
+    booktitle = {Information Security and Cryptology -- ICISC 2022},
+    series    = {Lecture Notes in Computer Science},
+    volume    = {13849},
+    pages     = {249--266},
+    publisher = {Springer},
+    year      = {2023},
+    doi       = {10.1007/978-3-031-29371-9_13}
+}
+@misc{rahul2026,
+    author       = {Rahul and Hanawal, Manjesh Kumar and Kulkarni, Sameer G. and Reddy K, Tirumaleswar},
+    title        = {{PQC} Migration of {IPsec}: Reliable Composite Key Sharing Mechanisms in {IKEv2}},
+    howpublished = {arXiv preprint arXiv:2610.25799},
+    year         = {2026},
+    month        = oct
+}
+@misc{blancoromero2025,
+    author       = {Blanco-Romero, Javier and Otero Garc{\'i}a, Pedro and Sobral-Blanco, Daniel and Almenares Mendoza, Florina and Fern{\'a}ndez Vilas, Ana and Fern{\'a}ndez-Veiga, Manuel},
+    title        = {Hybrid Quantum Security for {IPsec}},
+    howpublished = {arXiv preprint arXiv:2507.09288},
+    year         = {2025},
+    month        = jul
+}
+% TODO replace with the ICC 2026 proceedings entry once available.
+@misc{dezuane2026,
+    author       = {De Zuane, Davide and Santini, Paolo and Baldi, Marco},
+    title        = {Implementation and transition to post-quantum cryptography of the Minimal {IKE} protocol},
+    howpublished = {arXiv preprint arXiv:2602.21737, to appear at IEEE ICC 2026},
+    year         = {2026},
+    month        = feb
+}
+@misc{strongswan,
+    author       = {{strongSwan Project}},
+    title        = {{strongSwan} -- {IPsec}-based {VPN} solution, release notes ({NEWS}) up to version 6.1.0},
+    howpublished = {\url{https://github.com/strongswan/strongswan/blob/master/NEWS}},
+    note         = {Accessed 21.10.2026},
+    year         = {2026}
+}
+@misc{libreswan,
+    author       = {{Libreswan Project}},
+    title        = {Libreswan {IPsec} implementation, change log ({CHANGES}) up to version 5.4.1},
+    howpublished = {\url{https://github.com/libreswan/libreswan/blob/main/CHANGES}},
+    note         = {Accessed 21.10.2026},
+    year         = {2026}
+}
+@misc{pqm4bench,
+    author       = {Kannwischer, Matthias J. and others},
+    title        = {pqm4 benchmark results (benchmarks.md, commit e1146b1)},
+    howpublished = {\url{https://github.com/mupq/pqm4/blob/master/benchmarks.md}},
+    note         = {Accessed 21.10.2026},
+    year         = {2026}
 }
 
 @inproceedings{pqm4,
