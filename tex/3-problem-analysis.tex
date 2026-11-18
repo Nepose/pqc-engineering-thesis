@@ -2,24 +2,389 @@
 \section{Problem analysis and requirements}
 \label{sec:analysis}
 
+Chapter~\ref{sec:sota} showed that hybrid post-quantum key exchange in IKEv2
+is standardised and implemented, and that its cost has so far been measured
+only for the initial establishment of an SA. This chapter turns that gap into
+the problem addressed by the thesis. It states the research questions and the
+scope, derives the requirements for a test bed that can answer them, selects
+the IKEv2 implementation and the test platform, and fixes the configurations to
+be compared. It closes with the effects that the theory of
+Chapter~\ref{sec:sota} predicts, which the measurements in
+Chapter~\ref{sec:results} confirm or refute.
+
+%---------------------------------------------------------------------------
 \subsection{Problem statement and research questions}
 \label{sec:analysis-problem}
-\placeholder{What exactly is measured and compared; research questions / hypotheses
-(e.g.\ overhead of hybrid exchange on SA establishment and rekeying).}
 
+An operator who wants to protect IPsec traffic against a harvest-now,
+decrypt-later adversary has to replace or extend the classical key exchange
+of IKEv2 with ML-KEM. The standards offer two ways to do so. In a \emph{pure}
+configuration, ML-KEM replaces the classical method in \texttt{IKE\_SA\_INIT}.
+In a \emph{hybrid} configuration, a classical method stays in
+\texttt{IKE\_SA\_INIT} and ML-KEM follows as an additional key exchange in
+\texttt{IKE\_INTERMEDIATE} (Section~\ref{sec:sota-multike}). Both are
+available in released open-source daemons. What the operator does not know is
+what each option costs over the lifetime of a tunnel, and under which
+conditions it stops working.
+
+The answer does not follow from the algorithm alone. ML-KEM sends one to two
+orders of magnitude more key-exchange data than X25519
+(Table~\ref{tab:ke-sizes}), and every additional key exchange costs one more
+round trip in every procedure that performs a key exchange
+(Table~\ref{tab:rtt}). Whether these bytes and round trips matter depends on
+several factors:
+\begin{itemize}
+    \item whether the message that carries them can be fragmented at the IKE
+    layer;
+    \item the round-trip time, rate, loss and MTU of the link;
+    \item middleboxes on the path that drop IP fragments;
+    \item how often the procedures are repeated over the lifetime of
+    a tunnel.
+\end{itemize}
+The published measurements reviewed in Section~\ref{sec:sota-impl} cover only
+the initial establishment, and most of them change more than the key
+exchange at a time. None of them emulates the constrained links of cellular
+IoT.
+
+The thesis therefore asks four questions.
+\begin{description}
+    \item[RQ1 (establishment).] Compared with classical X25519, what do pure
+    ML-KEM (512, 768, 1024) and hybrid X25519 + ML-KEM cost when an IKE SA is
+    established? The cost covers messages and bytes on the wire, IP and IKE
+    fragmentation, set-up time, and the CPU time and memory of the IKE
+    daemon. Throughput and latency of the protected traffic are measured as
+    a control.
+    \item[RQ2 (rekeying).] What does each rekeying procedure cost with these
+    configurations: a Child SA rekey with and without key exchange, an IKE SA
+    rekey, and reauthentication?
+    \item[RQ3 (constraints).] How do constrained links and a resource-limited
+    initiator change these costs, and under which conditions does
+    establishment fail? Constrained links here means delay, loss, a low rate,
+    a small MTU, and middleboxes that drop IP fragments.
+    \item[RQ4 (guidance).] What configuration and migration guidance follows,
+    in general and for the telecom, IoT and financial-sector use cases?
+\end{description}
+RQ1 and RQ2 form the generic core of the thesis. RQ3 extends it to the
+constrained links and devices of IoT deployments. RQ4 is answered in
+Chapter~\ref{sec:reco}, from the results of the first three.
+
+%---------------------------------------------------------------------------
+\subsection{Scope}
+\label{sec:analysis-scope}
+
+The core of the thesis is generic: the cost of ML-KEM in the key exchange of
+IKEv2. Three use cases give it context and shape the test conditions. They are
+described from public sources only.
+\begin{itemize}
+    \item \textbf{Telecom.} Base stations protect their backhaul with IPsec
+    towards a security gateway that terminates many IKE SAs. GSMA PQ.06
+    reports a hybrid prototype of this setting with up to 520 IKE
+    SAs~\cite{gsmaPq06}. The thesis therefore also measures many SAs towards
+    one responder.
+    \item \textbf{IoT.} Gateways connect over cellular links such as LTE-M and
+    NB-IoT, with long round-trip times, low rates and loss, and they have
+    limited CPU and memory (Section~\ref{sec:sota-iot}). The thesis therefore
+    emulates such links and a resource-limited initiator.
+    \item \textbf{Financial sector.} Branches connect to the VPN concentrator
+    of a head office over site-to-site tunnels, under regulation that requires
+    cryptography to follow the state of the art
+    (Section~\ref{sec:sota-regulatory}). The thesis therefore carries traffic
+    between networks behind the gateways and examines rekeying policy and
+    firewalls that drop IP fragments.
+\end{itemize}
+
+The thesis covers KEM-based key exchange, pure and hybrid ML-KEM, for the
+initial IKE SA and for every procedure of Table~\ref{tab:rtt}. It uses an
+unmodified, released implementation in a test bed of virtual machines with
+emulated network conditions. The following are out of scope:
+\begin{itemize}
+    \item \textbf{Post-quantum authentication}
+    (Section~\ref{sec:sota-pqauth}). Authentication stays classical and
+    identical in every configuration, so that only the key exchange varies.
+    \item \textbf{Post-quantum preshared keys} (Section~\ref{sec:sota-ppk}).
+    They need no new algorithm and add almost no bytes, so there is little to
+    measure. Chapter~\ref{sec:reco} discusses them as a migration option.
+    % OPEN (supervisor meeting): confirm that PPKs stay out of the matrix.
+    \item \textbf{Changes to the protocol or the implementation}, such as
+    selective retransmission of fragments or composite keys over TCP
+    (Section~\ref{sec:sota-impl}). The thesis measures what an operator can
+    deploy today.
+    \item \textbf{Energy consumption and real IoT hardware.} Energy cannot be
+    measured meaningfully in virtual machines, and the resource-limited
+    initiator is an emulation (Section~\ref{sec:analysis-vpn}).
+    % OPEN (supervisor meeting): a Raspberry Pi as a real ARM gateway, as an
+    % optional extension.
+    \item \textbf{Production infrastructure.} All experiments run in an
+    isolated lab.
+\end{itemize}
+
+%---------------------------------------------------------------------------
 \subsection{Requirements}
 \label{sec:analysis-requirements}
-\placeholder{Functional (interoperable hybrid exchange per RFC 9370 + ML-KEM, rekeying
-support, operation on an ARM IoT-class gateway) and non-functional (reproducibility,
-isolation of the test bed) requirements.}
 
-\subsection{Selection of the IPsec implementation and hardware platforms}
+The research questions translate into requirements for the test bed.
+Functional requirements (Table~\ref{tab:req-functional}) state what it must be
+able to do. Non-functional requirements (Table~\ref{tab:req-nonfunctional})
+state the conditions under which its results can be trusted and reproduced.
+Chapter~\ref{sec:impl} refers to them by their identifiers.
+
+\begin{table}[!h] \centering
+    \footnotesize
+    \caption{Functional requirements for the test bed.}
+    \label{tab:req-functional}
+    \begin{tabular}{| p{0.05\linewidth} | p{0.68\linewidth} | p{0.17\linewidth} |} \hline
+        ID & Requirement & Motivated by \\ \hline\hline
+        F1 & Negotiate every configuration of
+             Section~\ref{sec:analysis-algorithms}: classical, pure ML-KEM in
+             \texttt{IKE\_SA\_INIT}, and classical + ML-KEM as an additional
+             key exchange (RFC~9242, RFC~9370).
+           & RQ1 \\ \hline
+        F2 & Fragment large encrypted messages at the IKE layer (RFC~7383),
+             and pass IP fragments by default, so that pure configurations can
+             be established on an unimpaired path.
+           & RQ1, RQ3 \\ \hline
+        F3 & Trigger each procedure of Table~\ref{tab:rtt} on demand: initial
+             establishment, Child SA rekey with and without key exchange,
+             IKE SA rekey, reauthentication.
+           & RQ2 \\ \hline
+        F4 & Carry traffic through the tunnel between networks behind the two
+             gateways (site to site).
+           & RQ1 control; financial use case \\ \hline
+        F5 & Impose network conditions between the peers, separately in each
+             direction: delay, rate limit, loss, a bottleneck MTU, and
+             dropping of all IP fragments.
+           & RQ3 \\ \hline
+        F6 & Limit the CPU and memory available to the IKE daemon of the
+             initiator.
+           & RQ3; IoT use case \\ \hline
+        F7 & Establish many IKE SAs towards one responder.
+           & RQ1; telecom and financial use cases \\ \hline
+        F8 & Record for every run: set-up time; timing of each exchange;
+             number of messages, bytes, IP fragments and IKE fragments; CPU
+             time and memory of the IKE daemon; for the control, throughput
+             and latency through the tunnel.
+           & RQ1--RQ3 \\ \hline
+        F9 & Check every run: the SA is established, the negotiated proposal
+             is the intended one, and the traffic is protected. Failed runs are
+             recorded and reported, because a failure is itself a result for
+             RQ3.
+           & RQ1--RQ3 \\ \hline
+    \end{tabular}
+\end{table}
+
+\begin{table}[!h] \centering
+    \footnotesize
+    \caption{Non-functional requirements for the test bed.}
+    \label{tab:req-nonfunctional}
+    \begin{tabular}{| p{0.05\linewidth} | p{0.68\linewidth} | p{0.17\linewidth} |} \hline
+        ID & Requirement & Motivated by \\ \hline\hline
+        N1 & \textbf{One variable.} Only the key exchange differs between
+             configurations. The implementation, its binaries,
+             authentication, ciphers, lifetimes and network conditions stay
+             the same.
+           & RQ1--RQ3 \\ \hline
+        N2 & \textbf{Deployable software.} The implementation is used
+             unmodified, at a pinned and verified released version.
+           & scope; transfer of results \\ \hline
+        N3 & \textbf{Reproducibility.} The whole test bed is created by
+             scripts kept under version control, all configurations are
+             generated from one matrix, and raw data is never overwritten.
+           & Appendix~A \\ \hline
+        N4 & \textbf{Measurement validity.} Network timings come from one
+             clock at one point on the path. Impairment is applied on a node
+             that is not measured. No other load runs during measurements.
+             Each measured cell is repeated often enough to report
+             distributions.
+           & RQ1--RQ3 \\ \hline
+        N5 & \textbf{Inspectability.} In the lab, the encrypted exchanges
+             (\texttt{IKE\_INTERMEDIATE}, \texttt{IKE\_AUTH}, ESP) can be
+             decrypted to verify what was actually exchanged.
+           & F9 \\ \hline
+        N6 & \textbf{Feasibility and confidentiality.} The test bed runs on
+             a single laptop at no cost, uses public information only and
+             never touches production systems.
+           & scope \\ \hline
+    \end{tabular}
+\end{table}
+
+%---------------------------------------------------------------------------
+\subsection{Selection of the IPsec implementation and the test platform}
 \label{sec:analysis-vpn}
-\placeholder{Comparison criteria and candidates (e.g.\ strongSwan, Libreswan);
-justification of the choice. Hardware: x86 peer and an ARM single-board computer
-acting as an IoT gateway.}
 
+\paragraph{Criteria for the implementation.}
+From requirements F1--F9 and N1--N2, the IKEv2 implementation must:
+\begin{enumerate}
+    \item support all three ML-KEM parameter sets, both in
+    \texttt{IKE\_SA\_INIT} and as an additional key exchange;
+    \item implement RFC~7383, RFC~9242 and RFC~9370, including
+    \texttt{IKE\_FOLLOWUP\_KE}, so that every procedure of
+    Table~\ref{tab:rtt} works with a hybrid;
+    \item be open source, released, actively maintained and usable without
+    modification;
+    \item offer a programmatic control interface for scripted runs and for
+    timestamped events;
+    \item be observable, with detailed logs and, in the lab, export of the
+    session keys;
+    \item run on Linux on arm64 and x86.
+\end{enumerate}
+
+\paragraph{Choice.}
+Section~\ref{sec:sota-impl} identified two open-source daemons that implement
+the standardised hybrid key exchange, strongSwan and Libreswan
+(Table~\ref{tab:impl}). A third open-source daemon, OpenBSD's iked, offers
+post-quantum key exchange only as \texttt{sntrup761\allowbreak x25519}, a hybrid group
+outside the IKEv2 standards, and implements neither ML-KEM nor
+RFC~9370~\cite{openbsdIked}, so it fails criteria~1 and~2. strongSwan and
+Libreswan both meet criteria~2 and~3. The first criterion
+decides: Libreswan~5.4 implements ML-KEM-768 only~\cite{libreswan}, so it
+cannot run the ML-KEM-512 and ML-KEM-1024 configurations. strongSwan has met
+criteria~1 and~2 since version~6.0~\cite{strongswan}. It also offers the VICI
+control interface for criterion~4 and a \texttt{save-keys} plugin that writes
+the IKE and ESP session keys in a format that Wireshark can read, for
+criterion~5. Its \texttt{load-tester} plugin can open many IKE SAs for
+requirement~F7. The thesis therefore uses strongSwan. It is built from an
+unmodified release, using strongSwan's own ML-KEM implementation, whereas
+several studies in Table~\ref{tab:relwork} added liboqs or modified the
+daemon~\cite{bae2023,twardokus2025,he2025,rahul2026}.
+Chapter~\ref{sec:impl} gives the version and how it was verified.
+
+\paragraph{Test platform.}
+The test bed consists of virtual machines on a single laptop, as agreed with
+the supervisor. Each gateway runs in its own virtual machine with its own
+kernel and IPsec stack, as it would on a real device. Its CPU and memory can be
+limited and measured separately. A third virtual machine routes all traffic
+between the gateways. It applies the network conditions of requirement~F5 and
+captures every packet with a single clock (N4), so neither the impairment nor
+the capture loads a measured host. The whole set-up is created by scripts, so
+it can be rebuilt from scratch (N3), and it needs no hardware beyond the
+laptop (N6).
+
+The choice has consequences that limit how the results can be interpreted.
+The laptop is an Apple M3 Pro with performance and efficiency cores, and
+macOS does not allow virtual CPUs to be pinned to either kind. Absolute timings
+and CPU figures are therefore those of this host, not of a gateway appliance,
+and the comparison between configurations matters more than the absolute
+values. The virtual machines run arm64 Linux, the same instruction set as
+many IoT gateways, but not their performance class. The resource-limited
+initiator of requirement~F6 is emulated with control-group limits, which
+throttle the daemon in bursts rather than slowing every instruction. Energy
+cannot be measured. Chapter~\ref{sec:method} describes how these effects are
+controlled, and Chapter~\ref{sec:results} discusses them as threats to
+validity.
+
+%---------------------------------------------------------------------------
 \subsection{Selection of algorithms and parameter sets}
 \label{sec:analysis-algorithms}
-\placeholder{Classical baseline groups, ML-KEM parameter sets, hybrid combinations
-to be evaluated, and why.}
+
+Table~\ref{tab:configs} lists the configurations. They differ only in the key
+exchange (N1).
+
+\paragraph{Classical baseline.}
+The baseline C1 uses X25519. It is the smallest and fastest classical method
+available in IKEv2, with 32 bytes per party (Table~\ref{tab:ke-sizes}), so it
+is the most demanding baseline against which to show the overhead of ML-KEM.
+It also avoids the comparison with MODP-2048 made by the closest previous
+study~\cite{twardokus2025}. A second baseline with the NIST curve P-256 (C2)
+is kept as an option for environments that require NIST curves.
+
+\paragraph{Pure ML-KEM.}
+P512, P768 and P1024 put ML-KEM in \texttt{IKE\_SA\_INIT}. The ML-KEM draft
+allows this without reservation only for ML-KEM-512. It advises against
+ML-KEM-768 and ML-KEM-1024 there when the path MTU is unknown or small,
+because \texttt{IKE\_SA\_INIT} cannot be fragmented at the IKE
+layer~\cite{ikev2mlkem}. The thesis includes all three parameter sets on
+purpose: what happens when this advice is not followed is part of what RQ1
+and RQ3 measure.
+
+\paragraph{Hybrid.}
+H512, H768 and H1024 keep X25519 in \texttt{IKE\_SA\_INIT} and add ML-KEM as
+the first additional key exchange in \texttt{IKE\_INTERMEDIATE}. The classical
+component is the same in all three, so only the ML-KEM parameter set varies.
+ML-KEM-512, 768 and 1024 target NIST security categories~1, 3 and~5
+respectively~\cite{fips203}, while X25519 is intended for about 128~bits of
+classical security~\cite{rfc8031}. This mismatch is acceptable, because the classical component of
+a hybrid protects against a failure of ML-KEM rather than adding post-quantum
+strength (Section~\ref{sec:sota-quantum}). Pairs matched in classical
+strength, such as P-384 + ML-KEM-1024, are a possible second axis if time
+allows. H768 is the main configuration, because NIST recommends ML-KEM-768 as
+the default parameter set~\cite[Section~8]{fips203}.
+% OPEN (supervisor meeting): the supervisor asked for "DH + ML-KEM"; confirm
+% X25519 as the classical component (alternatives: P-256, P-384, MODP-3072).
+
+\begin{table}[!h] \centering
+    \footnotesize
+    \caption{Configurations compared in the thesis. ``Init.'' and ``Resp.''
+    give the key-exchange data in bytes sent by the initiator and the
+    responder (Table~\ref{tab:ke-sizes}). The last column states whether the
+    ML-KEM data travels in a message that can be fragmented at the IKE layer
+    (RFC~7383).}
+    \label{tab:configs}
+    \begin{tabular}{| l | l | l | r | r | l |} \hline
+        ID & \texttt{IKE\_SA\_INIT} & \texttt{IKE\_INTERMEDIATE} & Init. & Resp. & RFC~7383 \\ \hline\hline
+        C1          & X25519      & ---         & 32   & 32   & --- \\ \hline
+        C2 (option) & P-256       & ---         & 64   & 64   & --- \\ \hline
+        P512        & ML-KEM-512  & ---         & 800  & 768  & no \\ \hline
+        P768        & ML-KEM-768  & ---         & 1184 & 1088 & no \\ \hline
+        P1024       & ML-KEM-1024 & ---         & 1568 & 1568 & no \\ \hline
+        H512        & X25519      & ML-KEM-512  & 832  & 800  & yes \\ \hline
+        H768        & X25519      & ML-KEM-768  & 1216 & 1120 & yes \\ \hline
+        H1024       & X25519      & ML-KEM-1024 & 1600 & 1600 & yes \\ \hline
+    \end{tabular}
+\end{table}
+
+\paragraph{Parameters kept constant.}
+All configurations use the same IKE SA proposal apart from the key exchange:
+AES-256-GCM with a 16-byte ICV and HMAC-SHA2-384 as the PRF. ESP uses
+AES-256-GCM. A 256-bit symmetric key keeps the data plane secure against
+Grover's algorithm (Section~\ref{sec:sota-quantum}). The peers authenticate
+with ECDSA P-256 certificates issued by a lab certification authority. These
+certificates and signatures are small, so \texttt{IKE\_AUTH} fits into
+a single packet, and any fragmentation observed comes from the key exchange.
+The ESP proposal carries a key exchange only in the scenario that measures
+a Child SA rekey with key exchange. There it uses the key exchange of the
+configuration under test. Rekeying is triggered explicitly by the measurement
+scripts rather than by lifetimes, so that each procedure runs exactly when it
+is measured.
+
+%---------------------------------------------------------------------------
+\subsection{Expected effects}
+\label{sec:analysis-hypotheses}
+
+The theory of Chapter~\ref{sec:sota} predicts the following effects. They are
+stated before any measurement, so that the results in
+Chapter~\ref{sec:results} can confirm or refute them.
+\begin{description}
+    \item[H1 (RQ1, messages and bytes).] The IKE messages grow by the
+    key-exchange data of Table~\ref{tab:configs}. Pure configurations keep
+    two exchanges but enlarge \texttt{IKE\_SA\_INIT}. Hybrids leave
+    \texttt{IKE\_SA\_INIT} almost unchanged and add one
+    \texttt{IKE\_INTERMEDIATE} exchange. \texttt{IKE\_AUTH} is the same in
+    every configuration.
+    \item[H2 (RQ1, size limits).] Headers and the other payloads add a few
+    hundred bytes to the KE payload. The \texttt{IKE\_SA\_INIT} messages of
+    P1024 therefore exceed a 1500-byte MTU and must be fragmented at the IP
+    layer. Those of P768 fit into 1500 bytes but not into 1280, and those of
+    P512 fit into both. Hybrid messages larger than the IKE fragment size are
+    split by RFC~7383 instead.
+    \item[H3 (RQ1, time and CPU).] On an unimpaired path, set-up time is
+    dominated by round trips and fixed processing rather than by ML-KEM
+    computation. Hybrids, with one more round trip, therefore take longer than
+    pure configurations with the same parameter set. The CPU time per
+    handshake grows only moderately. Throughput and latency of ESP do not
+    change, because the data plane does not depend on the key exchange.
+    \item[H4 (RQ2).] A Child SA rekey without key exchange costs the same in
+    every configuration and serves as a control. Procedures with a key
+    exchange behave like the initial establishment. A hybrid adds one
+    \texttt{IKE\_FOLLOWUP\_KE} round trip (Table~\ref{tab:rtt}). A pure
+    configuration adds no round trip, and because \texttt{CREATE\_CHILD\_SA}
+    is encrypted, its larger messages can be fragmented at the IKE layer.
+    Reauthentication costs about as much as the initial establishment.
+    \item[H5 (RQ3).] Delay amplifies the extra round trip of hybrids. Loss
+    amplifies the number of packets per message, because IKEv2 retransmits
+    whole messages (Section~\ref{sec:sota-impl}). On a path that drops IP
+    fragments, every configuration whose \texttt{IKE\_SA\_INIT} needs IP
+    fragmentation fails to establish~\cite{rfc7383}. Hybrids, which carry
+    ML-KEM in messages that can be fragmented at the IKE layer, still succeed.
+    A CPU-limited initiator stretches the computational part of the set-up
+    time.
+\end{description}
