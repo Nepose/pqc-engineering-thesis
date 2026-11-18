@@ -8,6 +8,7 @@
 #   peers          clone pqc-base into pqc-ini / pqc-resp, attach networks, set up addressing
 #   wan            create pqc-wan on both networks and set it up as the router
 #   sync           copy lab/ into every running lab VM (after editing scripts)
+#   clock          set the clock of every running lab VM from the host clock
 #   status         show lab VMs and networks; warn about other running VMs (noise)
 #   stop           stop all lab VMs
 #   destroy-peers  delete pqc-ini and pqc-resp (to re-clone after a new build)
@@ -95,6 +96,20 @@ cmd_sync() {
     return 0
 }
 
+# NTP gets no answer through the user-v2 networks, and a VM's clock stands still while
+# the host sleeps. Durations always come from one clock (a pcap, a client), so a step of
+# the wall clock only matters for matching logs across VMs; ssh latency bounds it to ~10 ms.
+cmd_clock() {
+    local vm now before
+    for vm in "${LAB_VMS[@]}"; do
+        running "$vm" || continue
+        before="$(vm_root "$vm" date +%s.%N)"
+        now="$(perl -MTime::HiRes=time -e 'printf "%.3f", time')"
+        vm_root "$vm" date -u -s "@$now" >/dev/null
+        info "$vm: clock set from the host (was off by $(awk -v a="$before" -v b="$now" 'BEGIN { printf "%+.1f", a - b }') s)"
+    done
+}
+
 cmd_status() {
     limactl list
     echo
@@ -125,9 +140,10 @@ case "${1:-}" in
     peers)         cmd_peers ;;
     wan)           cmd_wan ;;
     sync)          cmd_sync ;;
+    clock)         cmd_clock ;;
     status)        cmd_status ;;
     stop)          cmd_stop ;;
     destroy-peers) cmd_destroy_vms pqc-ini pqc-resp ;;
     destroy)       cmd_destroy_vms "${LAB_VMS[@]}" ;;
-    *) sed -n '2,16p' "$0"; exit 1 ;;
+    *) sed -n '2,17p' "$0"; exit 1 ;;
 esac
