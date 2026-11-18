@@ -98,8 +98,9 @@ ANSSI~\cite{anssi2023} and the German BSI, whose technical guideline currently
 recommends post-quantum key agreement \emph{only} in combination with
 a classical mechanism~\cite{bsiTr02102}. The same position was taken in a joint
 statement of eighteen EU member states in November 2024~\cite{jointPqc2024}.
-Hybrid key exchange is also the configuration that this thesis implements and
-evaluates.
+Hybrid key exchange is the main configuration evaluated in this thesis, which
+also measures ML-KEM used on its own for comparison
+(Section~\ref{sec:analysis-algorithms}).
 
 %---------------------------------------------------------------------------
 \subsection{IPsec architecture}
@@ -763,10 +764,11 @@ a prerequisite for IoT deployments.
 
 \paragraph{Open-source IKEv2 implementations.}
 The two most widely used open-source IKEv2 daemons for Linux both implement
-standardised post-quantum hybrid key exchange.
-% TODO: check OpenBSD iked (non-standard hybrid groups in IKE_SA_INIT) and
-% mention it briefly if relevant.
-Table~\ref{tab:impl} summarises their support, based on their release notes.
+standardised post-quantum hybrid key exchange. OpenBSD's iked, by contrast,
+offers only \texttt{sntrup761\allowbreak x25519}, a hybrid group outside the
+IKEv2 standards, and implements neither ML-KEM nor RFC~9370~\cite{openbsdIked}.
+Table~\ref{tab:impl} summarises the support of strongSwan and Libreswan, based
+on their release notes.
 % TODO: re-check versions right before the lab build (P2) and before submission.
 \begin{itemize}
     \item \textbf{strongSwan}~\cite{strongswan} added RFC~9242 and RFC~9370,
@@ -873,10 +875,10 @@ groups.
             & initial
             & not studied \\ \hline\hline
         \textbf{This thesis}
-            & unmodified open-source daemon, x86 and ARM gateway
-            & classical vs.\ classical + ML-KEM (classical, constant)
+            & unmodified strongSwan~6.1, virtual machines on one laptop (arm64)
+            & X25519 vs.\ pure ML-KEM and X25519 + ML-KEM, 512/768/1024 (ECDSA, constant)
             & initial, all rekeys, reauth.
-            & LAN and emulated LTE-M-/NB-IoT-like links (RTT, rate, loss, MTU) \\ \hline
+            & LAN, emulated LTE-M-/NB-IoT-like links (RTT, rate, loss, MTU), fragment-dropping path \\ \hline
     \end{tabular}
 \end{table}
 % TODO: Bae, Mutlugun and He are closed access -- their rows rest on the
@@ -936,17 +938,22 @@ all~\cite{dezuane2026}. Yet a long-lived tunnel performs the procedures of
 Table~\ref{tab:rtt}, Child SA rekeys with PFS, IKE SA rekeys and
 reauthentication, many times over its lifetime. Under RFC~9370 each of them
 gains an \texttt{IKE\_FOLLOWUP\_KE} round trip and fragmented messages. Second,
-the platforms studied are either x86 hosts or a microcontroller, not an ARM
-application-class gateway running a production daemon. Third, the study closest
+the studies place ML-KEM either in \texttt{IKE\_SA\_INIT} or in
+\texttt{IKE\_INTERMEDIATE}. To the author's knowledge, none compares the two
+placements for all three parameter sets in the same implementation, although
+the placement decides whether a message can be fragmented at the IKE layer
+(Section~\ref{sec:sota-mlkem}). Third, the study closest
 to this thesis~\cite{twardokus2025} changes the key exchange and the
 authentication at the same time and compares against MODP-2048, while Rahul
 et al.\ compare post-quantum variants only. Neither isolates the cost of the
 hybrid key exchange against a modern classical baseline. Finally, to the
 author's knowledge, no study emulates the combination of long RTT, low
-bandwidth and reduced MTU that is typical of cellular IoT links. This thesis addresses these four points. It
-measures every procedure of Table~\ref{tab:rtt} with standardised RFC~9370
-hybrid key exchange and constant classical authentication, on a regular host
-and on an ARM IoT-class gateway, over a LAN and emulated constrained links.
+bandwidth and reduced MTU that is typical of cellular IoT links, or a path
+that drops IP fragments. This thesis addresses these four points. It measures
+every procedure of Table~\ref{tab:rtt} with pure ML-KEM and with standardised
+RFC~9370 hybrid key exchange at all three parameter sets, with constant
+classical authentication, over a LAN and emulated constrained links
+(Chapter~\ref{sec:analysis}).
 
 %---------------------------------------------------------------------------
 \subsection{Regulatory context of the post-quantum migration}
@@ -1031,11 +1038,12 @@ high-risk use cases.
 Published measurements show that hybrid key exchange costs little on
 reliable links but degrades sharply under packet loss, because fragmented
 messages are retransmitted as a whole. These studies, however, cover only the
-initial establishment of an SA, on x86 hosts or a microcontroller. Hybrid key
+initial establishment of an SA. Hybrid key
 exchange adds round trips and roughly a kilobyte per direction to
 \emph{every} procedure that performs a key exchange, including Child SA rekeys
-with PFS, IKE SA rekeys and reauthentication. The cost of these procedures on
-an ARM IoT-class gateway and over emulated cellular IoT links has not been
-measured. The next
+with PFS, IKE SA rekeys and reauthentication. The cost of these procedures has not been
+measured, and neither has the difference between placing ML-KEM in
+\texttt{IKE\_SA\_INIT} and in \texttt{IKE\_INTERMEDIATE} on emulated cellular
+IoT links and on paths that drop IP fragments. The next
 chapter turns this gap into the problem statement and requirements of the
 thesis.
