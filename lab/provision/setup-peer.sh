@@ -28,7 +28,7 @@ sysctl -q -w net.ipv4.ip_forward=1 \
     net.ipv4.conf.all.accept_redirects=0 "net.ipv4.conf.$ifc.accept_redirects=0"
 
 # Hosts behind the gateway
-ip netns list | grep -qw lan || ip netns add lan
+[ -e /run/netns/lan ] || ip netns add lan
 if ! ip link show veth-gw >/dev/null 2>&1; then
     ip link add veth-gw type veth peer name veth-lan
     ip link set veth-lan netns lan

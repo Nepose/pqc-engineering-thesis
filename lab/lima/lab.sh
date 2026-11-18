@@ -22,7 +22,9 @@ LAB="$(cd "$HERE/.." && pwd)"
 
 LAB_VMS=(pqc-base pqc-ini pqc-resp pqc-wan)
 
-exists()  { limactl list --format '{{.Name}}' 2>/dev/null | grep -qx "$1"; }
+# No "limactl ... | grep -q": grep exits on the first match, limactl gets SIGPIPE,
+# and pipefail turns a found name into a failure.
+exists()  { grep -qx "$1" <<<"$(limactl list --format '{{.Name}}' 2>/dev/null)"; }
 running() { [ "$(limactl list --format '{{.Status}}' "$1" 2>/dev/null)" = "Running" ]; }
 vm_root() { local vm="$1"; shift; limactl shell --workdir / "$vm" sudo "$@"; }
 
@@ -44,7 +46,7 @@ cmd_networks() {
     local name cidr
     for name in "$NET_LEFT" "$NET_RIGHT"; do
         cidr="$NET_LEFT_GW_CIDR"; [ "$name" = "$NET_RIGHT" ] && cidr="$NET_RIGHT_GW_CIDR"
-        if limactl network list | awk 'NR > 1 { print $1 }' | grep -qx "$name"; then
+        if grep -qx "$name" <<<"$(limactl network list | awk 'NR > 1 { print $1 }')"; then
             info "network $name exists"
         else
             limactl network create "$name" --gateway "$cidr"
