@@ -37,9 +37,11 @@ The two uses of public-key cryptography in a VPN handshake are not equally
 urgent:
 \begin{itemize}
     \item \textbf{Key exchange} is exposed to the \emph{harvest now, decrypt
-    later} (HNDL) attack: an adversary records encrypted traffic today and
-    decrypts it once a CRQC becomes available. Data with a long confidentiality
-    lifetime is thus already at risk.
+    later} (HNDL) attack: a passive adversary records the handshake together
+    with the encrypted traffic today. Once a CRQC becomes available, it
+    recovers the shared secret from the public key-exchange values, derives
+    every session key from it and decrypts the recording. Data with a long
+    confidentiality lifetime is thus already at risk.
     \item \textbf{Authentication} only has to resist forgery \emph{at the
     moment} the handshake takes place. A signature broken in the future does not
     retroactively compromise past sessions.
