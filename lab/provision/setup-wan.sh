@@ -7,11 +7,16 @@ LAB="$(cd "$(dirname "$0")/.." && pwd)"
 . "$LAB/lib.sh"
 need_root
 
-if ! command -v tcpdump >/dev/null || ! command -v nft >/dev/null || ! command -v ethtool >/dev/null; then
-    info "installing tcpdump, nftables, ethtool"
-    DEBIAN_FRONTEND=noninteractive apt-get update -q
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends tcpdump nftables ethtool
-fi
+# tshark decodes the captures here, next to the pcaps (checks/tunnel-check.sh).
+tools=(tcpdump nft ethtool tshark)
+for tool in "${tools[@]}"; do
+    command -v "$tool" >/dev/null && continue
+    info "installing tcpdump, nftables, ethtool, tshark"
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -q
+    apt-get install -y -q --no-install-recommends tcpdump nftables ethtool tshark
+    break
+done
 
 left="${PQC_LEFT_IF:-$(iface_in "$LEFT_NET")}"
 right="${PQC_RIGHT_IF:-$(iface_in "$RIGHT_NET")}"
