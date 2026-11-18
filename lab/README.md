@@ -3,8 +3,8 @@
 The test bed runs on a single laptop. It has three Linux VMs (Lima, Ubuntu 24.04 arm64) and
 strongSwan 6.x built from source with ML-KEM support. Thesis chapter 4 describes it, and appendix A lists its configuration.
 
-> **Status: draft, nothing has been run yet.** Each file is validated in the build step named
-> in the table below (L0–L5). Until then, treat it as a design, not as a working tool.
+> **Status: L0–L4 validated on 2026-11-18** (reports in [results/](../results/)). The files for
+> L5–L7 (rekeying, measurement client, profiles other than `lan` and `ltem`) are still a design.
 
 ## Topology
 
@@ -36,19 +36,23 @@ strongSwan 6.x built from source with ML-KEM support. Thesis chapter 4 describes
 | [provision/setup-peer.sh](provision/setup-peer.sh), [provision/setup-wan.sh](provision/setup-wan.sh) | Addressing, routing, LAN namespaces, forwarding without offloads | L2 |
 | [swanctl/](swanctl/) | Configuration matrix (C1, P512–P1024, H512–H1024), connection template, lab PKI | L3–L4 |
 | [profiles/](profiles/) | Network profiles on `pqc-wan` (LAN, LTE-M-like, NB-IoT-like, MTU 1280, fragment drop) and the IoT device profile on `pqc-ini` | L0, L7 |
-| [checks/](checks/) | `link-check.sh` (L0 criteria), `build-check.sh` (L1 criteria) | L0, L1 |
+| [checks/](checks/) | `link-check.sh` (L0 criteria), `build-check.sh` (L1 criteria), `tunnel-check.sh` (one configuration end to end, L3–L4), `ike-table.sh` (decodes a capture on `pqc-wan`, with the session keys if given) | L0–L4 |
 
 ## Build order
 
-All commands run on the macOS host from the repository root. `lab.sh` copies `lab/` into the VMs.
+All commands run on the macOS host from the repository root. `lab.sh` copies `lab/` into the VMs;
+run `lab/lima/lab.sh sync` after editing a script.
+
+By hand, a configuration is activated with `sudo /opt/pqc-lab/swanctl/use.sh resp <id>` in `pqc-resp`,
+the same with `ini` in `pqc-ini`, then `sudo swanctl --initiate --child <id>-lan` in `pqc-ini`.
 
 | Step | Commands | Done when |
 |---|---|---|
 | L0 network spike | `lab/lima/lab.sh networks`, then `base`, `peers`, `wan`; then `lab/checks/link-check.sh` | all checks PASS; report in `results/l0/` |
-| L1 strongSwan | verify the release signature, pin `STRONGSWAN_SHA256` in `lab.env`; `lab/lima/lab.sh build` | `build-check.sh` PASS (ML-KEM-512/768/1024 listed) |
-| L2 VMs and routing | `lab/lima/lab.sh destroy-peers`, then `peers` (re-clone with strongSwan) | `ip route get` on each peer goes via `pqc-wan` |
-| L3 classical tunnel | in `pqc-resp`, then in `pqc-ini`: `sudo /opt/pqc-lab/swanctl/use.sh <role> c1`; then `sudo swanctl --initiate --child c1-lan` | ESTABLISHED; ESP seen on `pqc-wan`; ping between the namespaces |
-| L4 hybrid and pure | the same with `h768`, `p768`, `p1024` | Wireshark shows IKE_INTERMEDIATE, KE sizes, IKE vs IP fragments |
+| L1 strongSwan | verify the release signature, pin `STRONGSWAN_SHA256` in `lab.env`; `lab/lima/lab.sh base`, then `build` | `build-check.sh` PASS (ML-KEM-512/768/1024 listed) |
+| L2 VMs and routing | `lab/lima/lab.sh destroy-peers` (type `delete`), then `peers` (re-clone with strongSwan); `lab/checks/link-check.sh` again | identical binaries on both peers; `ip route get` on each peer goes via `pqc-wan` |
+| L3 classical tunnel | `lab/checks/tunnel-check.sh c1` | ESTABLISHED; ESP seen on `pqc-wan`; ping and iperf3 between the namespaces |
+| L4 hybrid and pure | `lab/checks/tunnel-check.sh h768`, then `p768`, `p1024` | the decoded capture shows IKE_INTERMEDIATE, the KE sizes, IKE fragments for the hybrid and IP fragments for P1024 |
 | L5 rekeying | `swanctl --rekey --child`, `--rekey --ike`, `--rekey --ike --reauth`; `use.sh ... --pfs` for Child SA rekey with KE | every procedure visible in the pcap |
 
 ## Rules
@@ -57,3 +61,10 @@ All commands run on the macOS host from the repository root. `lab.sh` copies `la
 - **Generated material stays out of git.** The lab PKI is generated inside the VMs (`/var/lib/pqc-lab/pki`). Raw results go under `results/raw/`, which is ignored.
 - **Lab VMs only.** The scripts touch only VMs whose names start with `pqc-`. During measurement runs, stop every other VM and every heavy host process.
 - **Pin and record versions.** Every version change is a commit to `lab.env` and a line in chapter 4.
+- **Clocks.** NTP gets no answer through the `user-v2` networks, and a VM's clock stands still while
+  the host sleeps. `lab/lima/lab.sh clock` sets every lab VM from the host clock; `tunnel-check.sh`
+  does it before each run. Durations never mix clocks: they come from one pcap or one client.
+- **Wireshark elsewhere.** The key files from `/var/lib/pqc-lab/wireshark` work in Wireshark 4.x
+  after two adjustments, which `ike-table.sh` makes itself: AES-GCM entries in `esp_sa` need `NULL`
+  authentication and the ICV length in the name, and with RFC 9370 the IKE table holds one line per
+  key generation for the same SPIs, while Wireshark uses one line per SPI pair.
