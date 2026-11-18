@@ -1,0 +1,63 @@
+tunnel check h1024 (x25519-ke1_mlkem1024), profile fragdrop, 2026-11-18T21:49:08Z
+scripts: commit ff35548
+daemon:  strongSwan swanctl 6.1.0
+raw:     results/raw/tunnel/h1024-fragdrop-20261118T214908Z
+
+== 1 up
+  h1024: #1, ESTABLISHED, IKEv2, 0103242f68546519_i* baf4084b0b45ce85_r
+    local  'ini.pqc.lab' @ 10.10.1.100[4500]
+    remote 'resp.pqc.lab' @ 10.10.2.100[4500]
+    AES_GCM_16-256/PRF_HMAC_SHA2_384/CURVE_25519/KE1_ML_KEM_1024
+    established 0s ago
+    h1024-lan: #1, reqid 1, INSTALLED, TUNNEL, ESP:AES_GCM_16-256
+      installed 0s ago
+      in  ca051e83,      0 bytes,     0 packets
+      out c1621424,      0 bytes,     0 packets
+      local  172.16.1.0/24
+      remote 172.16.2.0/24
+PASS  CHILD_SA installed; swanctl --initiate returned after 12 ms
+== 2 proposal
+PASS  IKE proposal AES_GCM_16-256/PRF_HMAC_SHA2_384/CURVE_25519/KE1_ML_KEM_1024
+== 3 traffic
+PASS  172.16.1.10 -> 172.16.2.10: 5/5 replies
+== 4 esp
+PASS  10 ESP packets on pqc-wan, 0 plaintext LAN packets
+== 5 iperf3 (not captured)
+PASS  TCP through the tunnel: 3924 Mbits/sec
+
+== on the wire: pqc-left, the initiator's side of pqc-wan, decrypted with the session keys
+frame    t [ms] from  IP B IP frag   IKE message              IKE frg payloads                   KE data
+    1       0.0 ini    276           IKE_SA_INIT #0 req               SA KE No Nx6               x25519 32 B
+    2       1.1 resp   309           IKE_SA_INIT #0 resp              SA KE No CERTREQ Nx7       x25519 32 B
+    3       3.3 ini   1280           IKE_INTERMEDIATE #1 req  1/2                                
+    4       3.3 ini    482           IKE_INTERMEDIATE #1 req  2/2     KE                         mlkem1024 1568 B
+    5       5.4 resp  1280           IKE_INTERMEDIATE #1 resp 1/2                                
+    6       5.4 resp   482           IKE_INTERMEDIATE #1 resp 2/2     KE                         mlkem1024 1568 B
+    7       6.3 ini    817           IKE_AUTH #2 req                  IDi CERT CERTREQ IDr AUTH SA TSi TSr Nx7 
+    8       7.9 resp   742           IKE_AUTH #2 resp                 IDr CERT AUTH SA TSi TSr Nx3 
+    9     155.9 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   10     156.2 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   11     365.0 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   12     365.7 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   13     570.7 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   14     571.0 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   15     779.6 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   16     780.4 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   17     981.0 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   18     981.4 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+
+IKE message (exchange MID)   frames IP frags IKE frags   bytes  payloads                   KE data
+IKE_SA_INIT 0 req                 1        -         -     276  SA KE No Nx6               x25519 32 B
+IKE_SA_INIT 0 resp                1        -         -     309  SA KE No CERTREQ Nx7       x25519 32 B
+IKE_INTERMEDIATE 1 req            2        -         2    1762  KE                         mlkem1024 1568 B
+IKE_INTERMEDIATE 1 resp           2        -         2    1762  KE                         mlkem1024 1568 B
+IKE_AUTH 2 req                    1        -         -     817  IDi CERT CERTREQ IDr AUTH SA TSi TSr Nx7 
+IKE_AUTH 2 resp                   1        -         -     742  IDr CERT AUTH SA TSi TSr Nx3 
+total IKE                         8                       5668                             
+handshake on the wire (first IKE_SA_INIT request to IKE_AUTH response): 7.9 ms
+ESP frames: 5 from ini, 5 from resp
+
+== pqc-right, the responder's side: 18 frames, 0 of them IP fragments
+
+RESULT: all checks passed
+report: results/tunnel/h1024-fragdrop-20261118T214908Z.txt

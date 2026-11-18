@@ -1,0 +1,62 @@
+tunnel check h768 (x25519-ke1_mlkem768), profile lan, 2026-11-18T21:45:23Z
+scripts: commit ff35548
+daemon:  strongSwan swanctl 6.1.0
+raw:     results/raw/tunnel/h768-20261118T214523Z
+
+== 1 up
+  h768: #1, ESTABLISHED, IKEv2, 1970cf81dbe87dc4_i* a953f05110c6553c_r
+    local  'ini.pqc.lab' @ 10.10.1.100[4500]
+    remote 'resp.pqc.lab' @ 10.10.2.100[4500]
+    AES_GCM_16-256/PRF_HMAC_SHA2_384/CURVE_25519/KE1_ML_KEM_768
+    established 0s ago
+    h768-lan: #1, reqid 1, INSTALLED, TUNNEL, ESP:AES_GCM_16-256
+      installed 0s ago
+      in  cef825da,      0 bytes,     0 packets
+      out c03680e8,      0 bytes,     0 packets
+      local  172.16.1.0/24
+      remote 172.16.2.0/24
+PASS  CHILD_SA installed; swanctl --initiate returned after 12 ms
+== 2 proposal
+PASS  IKE proposal AES_GCM_16-256/PRF_HMAC_SHA2_384/CURVE_25519/KE1_ML_KEM_768
+== 3 traffic
+PASS  172.16.1.10 -> 172.16.2.10: 5/5 replies
+== 4 esp
+PASS  10 ESP packets on pqc-wan, 0 plaintext LAN packets
+== 5 iperf3 (not captured)
+PASS  TCP through the tunnel: 3554 Mbits/sec
+
+== on the wire: pqc-left, the initiator's side of pqc-wan, decrypted with the session keys
+frame    t [ms] from  IP B IP frag   IKE message              IKE frg payloads                   KE data
+    1       0.0 ini    276           IKE_SA_INIT #0 req               SA KE No Nx6               x25519 32 B
+    2       1.1 resp   309           IKE_SA_INIT #0 resp              SA KE No CERTREQ Nx7       x25519 32 B
+    3       2.8 ini   1280           IKE_INTERMEDIATE #1 req  1/2                                
+    4       2.8 ini     98           IKE_INTERMEDIATE #1 req  2/2     KE                         mlkem768 1184 B
+    5       4.3 resp  1185           IKE_INTERMEDIATE #1 resp         KE                         mlkem768 1088 B
+    6       5.3 ini    816           IKE_AUTH #2 req                  IDi CERT CERTREQ IDr AUTH SA TSi TSr Nx7 
+    7       6.9 resp   742           IKE_AUTH #2 resp                 IDr CERT AUTH SA TSi TSr Nx3 
+    8     156.3 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+    9     156.5 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   10     367.9 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   11     368.2 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   12     574.3 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   13     574.9 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   14     779.8 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   15     780.3 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   16     987.6 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   17     988.2 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+
+IKE message (exchange MID)   frames IP frags IKE frags   bytes  payloads                   KE data
+IKE_SA_INIT 0 req                 1        -         -     276  SA KE No Nx6               x25519 32 B
+IKE_SA_INIT 0 resp                1        -         -     309  SA KE No CERTREQ Nx7       x25519 32 B
+IKE_INTERMEDIATE 1 req            2        -         2    1378  KE                         mlkem768 1184 B
+IKE_INTERMEDIATE 1 resp           1        -         -    1185  KE                         mlkem768 1088 B
+IKE_AUTH 2 req                    1        -         -     816  IDi CERT CERTREQ IDr AUTH SA TSi TSr Nx7 
+IKE_AUTH 2 resp                   1        -         -     742  IDr CERT AUTH SA TSi TSr Nx3 
+total IKE                         7                       4706                             
+handshake on the wire (first IKE_SA_INIT request to IKE_AUTH response): 6.9 ms
+ESP frames: 5 from ini, 5 from resp
+
+== pqc-right, the responder's side: 17 frames, 0 of them IP fragments
+
+RESULT: all checks passed
+report: results/tunnel/h768-20261118T214523Z.txt

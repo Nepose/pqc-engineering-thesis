@@ -1,0 +1,50 @@
+tunnel check p1024 (mlkem1024), profile fragdrop, 2026-11-18T21:49:36Z
+scripts: commit fc75e3b
+daemon:  strongSwan swanctl 6.1.0
+raw:     results/raw/tunnel/p1024-fragdrop-20261118T214936Z
+
+== 1 up
+  p1024: #1, CONNECTING, IKEv2, 9d678b7c3c500d3c_i* 0000000000000000_r
+    local  '%any' @ 10.10.1.100[500]
+    remote '%any' @ 10.10.2.100[500]
+    active:  IKE_VENDOR IKE_INIT IKE_NATD IKE_CERT_PRE IKE_AUTH IKE_CERT_POST IKE_CONFIG IKE_AUTH_LIFETIME IKE_MOBIKE IKE_ESTABLISH CHILD_CREATE
+FAIL  initiate exit code 1 after 30009 ms
+  initiate failed: CHILD_SA 'p1024-lan' not established after 30000ms
+  [IKE] initiating IKE_SA p1024[1] to 10.10.2.100
+  [ENC] generating IKE_SA_INIT request 0 [ SA KE No N(NATD_S_IP) N(NATD_D_IP) N(FRAG_SUP) N(HASH_ALG) N(REDIR_SUP) ]
+  [NET] sending packet: from 10.10.1.100[500] to 10.10.2.100[500] (1768 bytes)
+  [IKE] retransmit 1 of request with message ID 0
+  [NET] sending packet: from 10.10.1.100[500] to 10.10.2.100[500] (1768 bytes)
+  [IKE] retransmit 2 of request with message ID 0
+  [NET] sending packet: from 10.10.1.100[500] to 10.10.2.100[500] (1768 bytes)
+  [IKE] retransmit 3 of request with message ID 0
+  [NET] sending packet: from 10.10.1.100[500] to 10.10.2.100[500] (1768 bytes)
+== 2 proposal
+FAIL  IKE proposal '', expected the key exchange ML_KEM_1024
+== 3 traffic
+FAIL  0/5 ping replies
+== 4 esp
+FAIL  0 ESP packets on pqc-wan, 0 plaintext LAN packets
+== 5 iperf3 (not captured)
+FAIL  skipped: no traffic gets through
+
+== on the wire: pqc-left, the initiator's side of pqc-wan, decrypted with the session keys
+frame    t [ms] from  IP B IP frag   IKE message              IKE frg payloads                   KE data
+    1       0.0 ini   1500 off 0     (IP fragment)                                               
+    2       0.0 ini    316 off 185   IKE_SA_INIT #0 req               SA KE No Nx5               mlkem1024 1568 B
+    3    4006.0 ini   1500 off 0     (IP fragment)                                               
+    4    4006.0 ini    316 off 185   IKE_SA_INIT #0 req               SA KE No Nx5               mlkem1024 1568 B
+    5   11212.2 ini   1500 off 0     (IP fragment)                                               
+    6   11212.2 ini    316 off 185   IKE_SA_INIT #0 req               SA KE No Nx5               mlkem1024 1568 B
+    7   24177.2 ini   1500 off 0     (IP fragment)                                               
+    8   24177.2 ini    316 off 185   IKE_SA_INIT #0 req               SA KE No Nx5               mlkem1024 1568 B
+
+IKE message (exchange MID)   frames IP frags IKE frags   bytes  payloads                   KE data
+IKE_SA_INIT 0 req                 8        8         -    7264  SA KE No Nx5               mlkem1024 1568 B
+total IKE                         8                       7264                             
+ESP frames: 0 from ini, 0 from resp
+
+== pqc-right, the responder's side: 0 frames, 0 of them IP fragments
+
+RESULT: some checks failed
+report: results/tunnel/p1024-fragdrop-20261118T214936Z.txt

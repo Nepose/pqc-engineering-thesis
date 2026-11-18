@@ -1,0 +1,59 @@
+tunnel check p1024 (mlkem1024), profile lan, 2026-11-18T21:45:38Z
+scripts: commit ff35548
+daemon:  strongSwan swanctl 6.1.0
+raw:     results/raw/tunnel/p1024-20261118T214538Z
+
+== 1 up
+  p1024: #1, ESTABLISHED, IKEv2, 3aeedf50c3cadc5c_i* 6f631a056a525b5a_r
+    local  'ini.pqc.lab' @ 10.10.1.100[4500]
+    remote 'resp.pqc.lab' @ 10.10.2.100[4500]
+    AES_GCM_16-256/PRF_HMAC_SHA2_384/ML_KEM_1024
+    established 0s ago
+    p1024-lan: #1, reqid 1, INSTALLED, TUNNEL, ESP:AES_GCM_16-256
+      installed 0s ago
+      in  c2215326,      0 bytes,     0 packets
+      out c779f869,      0 bytes,     0 packets
+      local  172.16.1.0/24
+      remote 172.16.2.0/24
+PASS  CHILD_SA installed; swanctl --initiate returned after 16 ms
+== 2 proposal
+PASS  IKE proposal AES_GCM_16-256/PRF_HMAC_SHA2_384/ML_KEM_1024
+== 3 traffic
+PASS  172.16.1.10 -> 172.16.2.10: 5/5 replies
+== 4 esp
+PASS  10 ESP packets on pqc-wan, 0 plaintext LAN packets
+== 5 iperf3 (not captured)
+PASS  TCP through the tunnel: 3598 Mbits/sec
+
+== on the wire: pqc-left, the initiator's side of pqc-wan, decrypted with the session keys
+frame    t [ms] from  IP B IP frag   IKE message              IKE frg payloads                   KE data
+    1       0.0 ini   1500 off 0     (IP fragment)                                               
+    2       0.0 ini    316 off 185   IKE_SA_INIT #0 req               SA KE No Nx5               mlkem1024 1568 B
+    3       3.5 resp  1500 off 0     (IP fragment)                                               
+    4       3.5 resp   349 off 185   IKE_SA_INIT #0 resp              SA KE No CERTREQ Nx6       mlkem1024 1568 B
+    5       5.1 ini    818           IKE_AUTH #1 req                  IDi CERT CERTREQ IDr AUTH SA TSi TSr Nx7 
+    6       7.4 resp   742           IKE_AUTH #1 resp                 IDr CERT AUTH SA TSi TSr Nx3 
+    7     189.2 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+    8     189.5 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+    9     400.1 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   10     400.5 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   11     606.1 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   12     607.0 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   13     812.4 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   14     813.4 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   15    1016.5 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   16    1017.2 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+
+IKE message (exchange MID)   frames IP frags IKE frags   bytes  payloads                   KE data
+IKE_SA_INIT 0 req                 2        2         -    1816  SA KE No Nx5               mlkem1024 1568 B
+IKE_SA_INIT 0 resp                2        2         -    1849  SA KE No CERTREQ Nx6       mlkem1024 1568 B
+IKE_AUTH 1 req                    1        -         -     818  IDi CERT CERTREQ IDr AUTH SA TSi TSr Nx7 
+IKE_AUTH 1 resp                   1        -         -     742  IDr CERT AUTH SA TSi TSr Nx3 
+total IKE                         6                       5225                             
+handshake on the wire (first IKE_SA_INIT request to IKE_AUTH response): 7.4 ms
+ESP frames: 5 from ini, 5 from resp
+
+== pqc-right, the responder's side: 16 frames, 4 of them IP fragments
+
+RESULT: all checks passed
+report: results/tunnel/p1024-20261118T214538Z.txt

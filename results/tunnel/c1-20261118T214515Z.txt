@@ -1,0 +1,57 @@
+tunnel check c1 (x25519), profile lan, 2026-11-18T21:45:15Z
+scripts: commit ff35548
+daemon:  strongSwan swanctl 6.1.0
+raw:     results/raw/tunnel/c1-20261118T214515Z
+
+== 1 up
+  c1: #1, ESTABLISHED, IKEv2, 731c08a0a49aaa4f_i* ae95929426186b37_r
+    local  'ini.pqc.lab' @ 10.10.1.100[4500]
+    remote 'resp.pqc.lab' @ 10.10.2.100[4500]
+    AES_GCM_16-256/PRF_HMAC_SHA2_384/CURVE_25519
+    established 0s ago
+    c1-lan: #1, reqid 1, INSTALLED, TUNNEL, ESP:AES_GCM_16-256
+      installed 0s ago
+      in  cbbaf79c,      0 bytes,     0 packets
+      out c35502a1,      0 bytes,     0 packets
+      local  172.16.1.0/24
+      remote 172.16.2.0/24
+PASS  CHILD_SA installed; swanctl --initiate returned after 11 ms
+== 2 proposal
+PASS  IKE proposal AES_GCM_16-256/PRF_HMAC_SHA2_384/CURVE_25519
+== 3 traffic
+PASS  172.16.1.10 -> 172.16.2.10: 5/5 replies
+== 4 esp
+PASS  10 ESP packets on pqc-wan, 0 plaintext LAN packets
+== 5 iperf3 (not captured)
+PASS  TCP through the tunnel: 2687 Mbits/sec
+
+== on the wire: pqc-left, the initiator's side of pqc-wan, decrypted with the session keys
+frame    t [ms] from  IP B IP frag   IKE message              IKE frg payloads                   KE data
+    1       0.0 ini    260           IKE_SA_INIT #0 req               SA KE No Nx5               x25519 32 B
+    2       1.4 resp   293           IKE_SA_INIT #0 resp              SA KE No CERTREQ Nx6       x25519 32 B
+    3       3.0 ini    816           IKE_AUTH #1 req                  IDi CERT CERTREQ IDr AUTH SA TSi TSr Nx7 
+    4       5.2 resp   744           IKE_AUTH #1 resp                 IDr CERT AUTH SA TSi TSr Nx3 
+    5     163.5 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+    6     163.8 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+    7     369.8 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+    8     370.2 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+    9     575.3 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   10     576.2 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   11     778.1 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   12     778.9 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   13     981.8 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   14     982.7 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+
+IKE message (exchange MID)   frames IP frags IKE frags   bytes  payloads                   KE data
+IKE_SA_INIT 0 req                 1        -         -     260  SA KE No Nx5               x25519 32 B
+IKE_SA_INIT 0 resp                1        -         -     293  SA KE No CERTREQ Nx6       x25519 32 B
+IKE_AUTH 1 req                    1        -         -     816  IDi CERT CERTREQ IDr AUTH SA TSi TSr Nx7 
+IKE_AUTH 1 resp                   1        -         -     744  IDr CERT AUTH SA TSi TSr Nx3 
+total IKE                         4                       2113                             
+handshake on the wire (first IKE_SA_INIT request to IKE_AUTH response): 5.2 ms
+ESP frames: 5 from ini, 5 from resp
+
+== pqc-right, the responder's side: 14 frames, 0 of them IP fragments
+
+RESULT: all checks passed
+report: results/tunnel/c1-20261118T214515Z.txt
