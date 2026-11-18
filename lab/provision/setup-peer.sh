@@ -21,8 +21,9 @@ ifc="${PQC_IF:-$(iface_in "$my_net")}"
 info "measured interface: $ifc"
 
 ip addr replace "$my_ip/$PREFIX_LEN" dev "$ifc"
-ip route replace "$far_net" via "$via" dev "$ifc"
-ip route replace "$far_lan" via "$via" dev "$ifc"
+# Lima's DHCP address stays primary (SSH needs it), so pin the lab address as source.
+ip route replace "$far_net" via "$via" dev "$ifc" src "$my_ip"
+ip route replace "$far_lan" via "$via" dev "$ifc" src "$my_ip"
 sysctl -q -w net.ipv4.ip_forward=1 \
     net.ipv4.conf.all.accept_redirects=0 "net.ipv4.conf.$ifc.accept_redirects=0"
 
