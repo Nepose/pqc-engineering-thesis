@@ -1,0 +1,116 @@
+L1 strongSwan build in pqc-base, 2026-11-18T21:30:37Z
+host: Apple M3 Pro, lima 2.3.0
+
+== release verification (macOS host, separate GnuPG home)
+tarball:   strongswan-6.1.0.tar.bz2 from https://download.strongswan.org/ (latest release listed on 2026-11-18)
+signature: strongswan-6.1.0.tar.bz2.sig, made 2026-09-06
+GOODSIG DF42C170B34DBA77 Andreas
+VALIDSIG 948F158A4E76A27BF3D07532DF42C170B34DBA77 2026-09-06
+key check: long key ID DF42C170B34DBA77 published on https://www.strongswan.org/download.html;
+           keyserver.ubuntu.com serves fingerprint 948F 158A 4E76 A27B F3D0 7532 DF42 C170 B34D BA77
+sha256:    fe6c97481298767213cfc2e9a1da29fdd8018d481ff4cb9cf0283099654f20d4 (pinned in lab/lab.env)
+
+== configure plugin summary
+ strongSwan will be built with the following plugins
+libstrongswan: random nonce x509 revocation constraints pubkey pkcs1 pkcs7 pgp dnskey sshkey pem openssl pkcs8 xcbc cmac kdf ml drbg
+libcharon:     attr load-tester kernel-netlink resolve save-keys socket-default vici updown counters
+libtnccs:     
+libtpmtss:    
+
+== build check (lab/checks/build-check.sh)
+strongSwan swanctl 6.1.0
+PASS  strongswan.service is active
+PASS  ML-KEM-512 available
+PASS  ML-KEM-768 available
+PASS  ML-KEM-1024 available
+PASS  X25519 available
+PASS  plugin ml loaded
+PASS  plugin openssl loaded
+PASS  plugin vici loaded
+PASS  plugin save-keys loaded
+--- key exchange methods
+ke:
+  MODP_3072[openssl]
+  MODP_4096[openssl]
+  MODP_6144[openssl]
+  MODP_8192[openssl]
+  MODP_2048[openssl]
+  MODP_2048_224[openssl]
+  MODP_2048_256[openssl]
+  MODP_1536[openssl]
+  MODP_1024[openssl]
+  MODP_1024_160[openssl]
+  MODP_768[openssl]
+  MODP_CUSTOM[openssl]
+  ECP_256[openssl]
+  ECP_384[openssl]
+  ECP_521[openssl]
+  ECP_224[openssl]
+  ECP_192[openssl]
+  ECP_256_BP[openssl]
+  ECP_384_BP[openssl]
+  ECP_512_BP[openssl]
+  ECP_224_BP[openssl]
+  CURVE_25519[openssl]
+  CURVE_448[openssl]
+  ML_KEM_512[ml]
+  ML_KEM_768[ml]
+  ML_KEM_1024[ml]
+--- build info
+date:       2026-11-18T21:28:39Z
+strongswan: 6.1.0 (sha256 fe6c97481298767213cfc2e9a1da29fdd8018d481ff4cb9cf0283099654f20d4)
+configure:  --prefix=/usr --sysconfdir=/etc --with-systemdsystemunitdir=/usr/lib/systemd/system --enable-systemd --enable-swanctl --enable-vici --enable-openssl --enable-ml --enable-save-keys --enable-load-tester
+os:         Ubuntu 24.04.5 LTS
+kernel:     6.8.0-142-generic
+openssl:    OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)
+
+== swanctl --stats
+loaded plugins: charon-systemd random save-keys nonce x509 revocation constraints pubkey pkcs1 pkcs7 pgp dnskey sshkey pem openssl pkcs8 xcbc cmac kdf ml drbg attr kernel-netlink resolve socket-default vici updown counters
+
+== lab PKI (ECDSA P-256, constant for every configuration)
+ca    DER  430 B  subject=C = PL, O = PQC Lab, CN = PQC Lab Root CA
+ini   DER  419 B  subject=C = PL, O = PQC Lab, CN = ini.pqc.lab
+resp  DER  421 B  subject=C = PL, O = PQC Lab, CN = resp.pqc.lab
+
+== /var/lib/pqc-lab/build-info.txt
+date:       2026-11-18T21:28:39Z
+strongswan: 6.1.0 (sha256 fe6c97481298767213cfc2e9a1da29fdd8018d481ff4cb9cf0283099654f20d4)
+configure:  --prefix=/usr --sysconfdir=/etc --with-systemdsystemunitdir=/usr/lib/systemd/system --enable-systemd --enable-swanctl --enable-vici --enable-openssl --enable-ml --enable-save-keys --enable-load-tester
+os:         Ubuntu 24.04.5 LTS
+kernel:     6.8.0-142-generic
+openssl:    OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)
+--- binaries (sha256)
+92b42a65c809994c13f824cce9d07b8607129197be361e0134bc31d005f26684  /usr/sbin/charon-systemd
+0c87617b2b54a31953507396b7d763aa35d678da96c92a89fa0fbc8f4b7a179e  /usr/sbin/swanctl
+381de86786e2fc39470c85ec543a5336d7d47967772a0d92997ec979e4c651b6  /usr/lib/ipsec/libcharon.so.0.0.0
+8343f6e8e55ca01865675c795463997dfbb2ef4f76c48acb42b598c9db32d7d8  /usr/lib/ipsec/libstrongswan.so.0.0.0
+55bc80abedb16b28b024bc41a24825a601bcf81a8a9d637534d79a3a8f256556  /usr/lib/ipsec/libtls.so.0.0.0
+5bb89cdc0cb56e6e8e57510bc804434cd087df307d08e5228e9b21c150b48099  /usr/lib/ipsec/libvici.so.0.0.0
+d2830e1c0cc473a1f74259c15c3e26aa2bb5d62c2d2fab7b62c463d2ceaba869  /usr/lib/ipsec/plugins/libstrongswan-attr.so
+a062b64d7cf77d872ea24fc076527a5a9b2f3446381493975dfa77f332a27196  /usr/lib/ipsec/plugins/libstrongswan-cmac.so
+bede914040e248d53741a0cb10931427adfa35f044f6d3c75ddefb7f4634955d  /usr/lib/ipsec/plugins/libstrongswan-constraints.so
+7b072d0cec7d67422df522a12e1a0dd67e4b013699968d32db8ab3042cefc3f0  /usr/lib/ipsec/plugins/libstrongswan-counters.so
+4c9167370d5881cf0b7ae65834ae8168e7552395a0af11f97e68a1b0c3b7596d  /usr/lib/ipsec/plugins/libstrongswan-dnskey.so
+97dc040ea5c8a51fb2d9e2d25677b97c7df00a39ba828b13459d13d3eb8cc102  /usr/lib/ipsec/plugins/libstrongswan-drbg.so
+26c48719b265078c6d4efab20792c8bc6dd8073ddc058286f8840e5b605aabb7  /usr/lib/ipsec/plugins/libstrongswan-kdf.so
+970e8ab3a7c36f380ac3e8e2d5655443b106073199c06746b43a1c068a72221e  /usr/lib/ipsec/plugins/libstrongswan-kernel-netlink.so
+bdf24f9a1f03e42524b95eacb0cafc473df54b463b2f83155c33e0907a3de027  /usr/lib/ipsec/plugins/libstrongswan-load-tester.so
+16216bdf458f6c45c3c7efe6b38bc7f961482865510432ff8aa7d1b7a1fca5d6  /usr/lib/ipsec/plugins/libstrongswan-ml.so
+29db22ee7afe2584f9d9a82a819e4e86ca86112f4feae843f06f013435b91070  /usr/lib/ipsec/plugins/libstrongswan-nonce.so
+5777abb38f42722a6a2b5e9b3c3a5e77eb10bce2cdeb561b78a8581a87e4d340  /usr/lib/ipsec/plugins/libstrongswan-openssl.so
+17ff9846f97a1b45406f60f6cdf859a7dab5dd0fea08217ae5fab876902ec7c9  /usr/lib/ipsec/plugins/libstrongswan-pem.so
+932d0827d466cc03a9c7f87cbafe66b26ca25499abb26ecee87cad6f3e66d4c8  /usr/lib/ipsec/plugins/libstrongswan-pgp.so
+80b0f41cbb7f15664bf4af8e23098080ffa8cf028c944170bf42bc4e384a19e2  /usr/lib/ipsec/plugins/libstrongswan-pkcs1.so
+3a191c46de68519c5f1c63f322050b9352743e1d67203d9fd97fd1b12ce28131  /usr/lib/ipsec/plugins/libstrongswan-pkcs7.so
+424a6bb3057fe99a03eae912c2594d772f0121e328ffcb5344743489f1db3a76  /usr/lib/ipsec/plugins/libstrongswan-pkcs8.so
+15675fa8070badaf5aad7dfad4a633d56a109bf8b0d44b639c4036551969e701  /usr/lib/ipsec/plugins/libstrongswan-pubkey.so
+9feec1b2dccf9765f7243753eea9c5c1d21e4a017ceca9c6f9ed737e5d60cb8b  /usr/lib/ipsec/plugins/libstrongswan-random.so
+bffdc26ae4b3d26e89e2ba778b9272638e6dfabc554d605fbf0d87869e4d450f  /usr/lib/ipsec/plugins/libstrongswan-resolve.so
+4d0d31f885bfa9963e7422fb24bf62fec042acab3c28fdb3ed7b0a7a74e84048  /usr/lib/ipsec/plugins/libstrongswan-revocation.so
+127d6699b789ee0809d3a5669e2e48fca0417fd67d8e3217c4c2015292220b6e  /usr/lib/ipsec/plugins/libstrongswan-save-keys.so
+0de70fd89ff1c451fe1dd9cbe7bbea0e64d13e12b4201d7cf24510c4b7d5de00  /usr/lib/ipsec/plugins/libstrongswan-socket-default.so
+ec81ddfdd80c3e1c6f978327487b2e40666c6bae6e17bcb10b4d50c00e449156  /usr/lib/ipsec/plugins/libstrongswan-sshkey.so
+ca4d480ca969389dc6e6326e88eb67f4c9bb1b1ae0b91c6dbeaa88c64359d7be  /usr/lib/ipsec/plugins/libstrongswan-updown.so
+0b7dfd873b9b0e6540aa6674f0b40f8fdd6401bf91892c898b8a9946f1b47a48  /usr/lib/ipsec/plugins/libstrongswan-vici.so
+515232c63d3b942a5b402c6f82dfd43ba2db065cda4852586b2e327cfb8b3c9a  /usr/lib/ipsec/plugins/libstrongswan-x509.so
+878f5f7e1a7afdad1dc6a4a03216011d508ef91f52fa20c4fa546949a0668b05  /usr/lib/ipsec/plugins/libstrongswan-xcbc.so

@@ -1,0 +1,64 @@
+L2 peers cloned from pqc-base, 2026-11-18T21:31:54Z
+
+== identical binaries on both peers (clones of pqc-base)
+pqc-base (stopped; from build-info.txt):
+  92b42a65c809994c13f824cce9d07b8607129197be361e0134bc31d005f26684  /usr/sbin/charon-systemd
+  0c87617b2b54a31953507396b7d763aa35d678da96c92a89fa0fbc8f4b7a179e  /usr/sbin/swanctl
+pqc-ini:
+  92b42a65c809994c13f824cce9d07b8607129197be361e0134bc31d005f26684  /usr/sbin/charon-systemd
+  0c87617b2b54a31953507396b7d763aa35d678da96c92a89fa0fbc8f4b7a179e  /usr/sbin/swanctl
+  e3a8f7d35fa523f8b601aad55c0208d0bda55d4367d89788f44a0c014ca32306  (all .so files)
+pqc-resp:
+  92b42a65c809994c13f824cce9d07b8607129197be361e0134bc31d005f26684  /usr/sbin/charon-systemd
+  0c87617b2b54a31953507396b7d763aa35d678da96c92a89fa0fbc8f4b7a179e  /usr/sbin/swanctl
+  e3a8f7d35fa523f8b601aad55c0208d0bda55d4367d89788f44a0c014ca32306  (all .so files)
+
+== strongSwan service
+pqc-ini   active, strongSwan swanctl 6.1.0
+pqc-resp  active, strongSwan swanctl 6.1.0
+
+== addressing and routes
+pqc-ini:
+  eth0             UP             10.10.1.1/24 metric 200 10.10.1.100/24 
+  default via 10.10.1.2 dev eth0 proto dhcp src 10.10.1.1 metric 200 
+  10.10.1.0/24 dev eth0 proto kernel scope link src 10.10.1.1 metric 200 
+  10.10.1.2 dev eth0 proto dhcp scope link src 10.10.1.1 metric 200 
+  10.10.2.0/24 via 10.10.1.200 dev eth0 src 10.10.1.100 
+  172.16.1.0/24 dev veth-gw proto kernel scope link src 172.16.1.1 
+  172.16.2.0/24 via 10.10.1.200 dev eth0 src 10.10.1.100 
+  veth-lan@if5     UP             172.16.1.10/24 
+pqc-resp:
+  eth0             UP             10.10.2.1/24 metric 200 10.10.2.100/24 
+  default via 10.10.2.2 dev eth0 proto dhcp src 10.10.2.1 metric 200 
+  10.10.1.0/24 via 10.10.2.200 dev eth0 src 10.10.2.100 
+  10.10.2.0/24 dev eth0 proto kernel scope link src 10.10.2.1 metric 200 
+  10.10.2.2 dev eth0 proto dhcp scope link src 10.10.2.1 metric 200 
+  172.16.1.0/24 via 10.10.2.200 dev eth0 src 10.10.2.100 
+  172.16.2.0/24 dev veth-gw proto kernel scope link src 172.16.2.1 
+  veth-lan@if5     UP             172.16.2.10/24 
+
+== path: tracepath from pqc-ini
+   1?: [LOCALHOST]                      pmtu 1500
+   1:  10.10.1.3                                             0.166ms 
+   1:  10.10.1.3                                             0.094ms 
+   2:  10.10.2.100                                           0.274ms reached
+       Resume: pmtu 1500 hops 2 back 2 
+
+== pqc-wan sees the peer-to-peer traffic (tcpdump on both interfaces, 3 pings)
+  3 packets transmitted, 3 received, 0% packet loss, time 614ms
+  rtt min/avg/max/mdev = 0.277/1.038/1.704/0.586 ms
+  20:11:12.022690 eth0  In  IP 10.10.1.100 > 10.10.2.100: ICMP echo request, id 1315, seq 1, length 64
+  20:11:12.022705 lima1 Out IP 10.10.1.100 > 10.10.2.100: ICMP echo request, id 1315, seq 1, length 64
+  20:11:12.022847 lima1 In  IP 10.10.2.100 > 10.10.1.100: ICMP echo reply, id 1315, seq 1, length 64
+  20:11:12.022851 eth0  Out IP 10.10.2.100 > 10.10.1.100: ICMP echo reply, id 1315, seq 1, length 64
+  20:11:12.331964 eth0  In  IP 10.10.1.100 > 10.10.2.100: ICMP echo request, id 1315, seq 2, length 64
+  20:11:12.332009 lima1 Out IP 10.10.1.100 > 10.10.2.100: ICMP echo request, id 1315, seq 2, length 64
+  20:11:12.332614 lima1 In  IP 10.10.2.100 > 10.10.1.100: ICMP echo reply, id 1315, seq 2, length 64
+  20:11:12.332637 eth0  Out IP 10.10.2.100 > 10.10.1.100: ICMP echo reply, id 1315, seq 2, length 64
+  20:11:12.637249 eth0  In  IP 10.10.1.100 > 10.10.2.100: ICMP echo request, id 1315, seq 3, length 64
+  20:11:12.637281 lima1 Out IP 10.10.1.100 > 10.10.2.100: ICMP echo request, id 1315, seq 3, length 64
+  20:11:12.637792 lima1 In  IP 10.10.2.100 > 10.10.1.100: ICMP echo reply, id 1315, seq 3, length 64
+  20:11:12.637807 eth0  Out IP 10.10.2.100 > 10.10.1.100: ICMP echo reply, id 1315, seq 3, length 64
+  (eth0 = pqc-left, lima1 = pqc-right: each packet appears once per interface)
+
+== L0 link check re-run on the clones: results/l0/link-check-20261118T213111Z.txt (all PASS)

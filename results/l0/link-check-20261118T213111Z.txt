@@ -1,0 +1,21 @@
+link check, 2026-11-18T21:31:11Z
+host: Apple M3 Pro, lima 2.3.0
+path: pqc-ini 10.10.1.100 -> pqc-wan -> pqc-resp 10.10.2.100
+
+== 0 route
+10.10.2.100 via 10.10.1.200 dev eth0 src 10.10.1.100 uid 0 
+PASS  route via pqc-wan
+== 1 baseline
+median 0.570 ms, p99 1.72 ms, replies 1000/1000
+PASS  baseline median 0.570 ms, p99 1.72 ms
+== 2 frags
+PASS  fragmented pings: 20/20 replies
+== 3 mtu
+PASS  ICMP fragmentation needed with mtu 1280
+== 4 netem
+PASS  ltem RTT median 115 ms (expected ~100)
+== 5 esp
+PASS  ESP: 10 packets on pqc-wan, 5/5 replies
+
+RESULT: all checks passed
+report: /Users/nepose/Projects/pqc-engineering-thesis/results/l0/link-check-20261118T213111Z.txt
