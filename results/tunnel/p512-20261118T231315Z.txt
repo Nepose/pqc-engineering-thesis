@@ -1,0 +1,57 @@
+tunnel check p512 (mlkem512), profile lan, 2026-11-18T23:13:15Z
+scripts: commit a0c3101
+daemon:  strongSwan swanctl 6.1.0
+raw:     results/raw/tunnel/p512-20261118T231315Z
+
+== 1 up
+  p512: #1, ESTABLISHED, IKEv2, 462635bf18256139_i* 54346407e902dd40_r
+    local  'ini.pqc.lab' @ 10.10.1.100[4500]
+    remote 'resp.pqc.lab' @ 10.10.2.100[4500]
+    AES_GCM_16-256/PRF_HMAC_SHA2_384/ML_KEM_512
+    established 0s ago
+    p512-lan: #1, reqid 1, INSTALLED, TUNNEL, ESP:AES_GCM_16-256
+      installed 0s ago
+      in  c3684e59,      0 bytes,     0 packets
+      out cf2b5be8,      0 bytes,     0 packets
+      local  172.16.1.0/24
+      remote 172.16.2.0/24
+PASS  CHILD_SA installed; swanctl --initiate returned after 11 ms
+== 2 proposal
+PASS  IKE proposal AES_GCM_16-256/PRF_HMAC_SHA2_384/ML_KEM_512
+== 3 traffic
+PASS  172.16.1.10 -> 172.16.2.10: 5/5 replies
+== 4 esp
+PASS  10 ESP packets on pqc-wan, 0 plaintext LAN packets
+== 5 iperf3 (not captured)
+PASS  TCP through the tunnel: 3617 Mbits/sec
+
+== on the wire: pqc-left, the initiator's side of pqc-wan, decrypted with the session keys
+frame    t [ms] from  IP B IP frag   IKE message              IKE frg payloads                   KE data
+    1       0.0 ini   1028           IKE_SA_INIT #0 req               SA KE No Nx5               mlkem512 800 B
+    2       1.5 resp  1029           IKE_SA_INIT #0 resp              SA KE No CERTREQ Nx6       mlkem512 768 B
+    3       3.1 ini    816           IKE_AUTH #1 req                  IDi CERT CERTREQ IDr AUTH SA TSi TSr Nx7 
+    4       5.2 resp   743           IKE_AUTH #1 resp                 IDr CERT AUTH SA TSi TSr Nx3 
+    5     170.3 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+    6     170.6 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+    7     377.7 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+    8     378.0 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+    9     588.0 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   10     588.6 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   11     793.5 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   12     794.5 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   13     998.7 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   14     999.2 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+
+IKE message (exchange MID)   frames IP frags IKE frags   bytes  payloads                   KE data
+IKE_SA_INIT 0 req                 1        -         -    1028  SA KE No Nx5               mlkem512 800 B
+IKE_SA_INIT 0 resp                1        -         -    1029  SA KE No CERTREQ Nx6       mlkem512 768 B
+IKE_AUTH 1 req                    1        -         -     816  IDi CERT CERTREQ IDr AUTH SA TSi TSr Nx7 
+IKE_AUTH 1 resp                   1        -         -     743  IDr CERT AUTH SA TSi TSr Nx3 
+total IKE                         4                       3616                             
+handshake on the wire (first IKE_SA_INIT request to IKE_AUTH response): 5.2 ms
+ESP frames: 5 from ini, 5 from resp
+
+== pqc-right, the responder's side: 14 frames, 0 of them IP fragments
+
+RESULT: all checks passed
+report: results/tunnel/p512-20261118T231315Z.txt
