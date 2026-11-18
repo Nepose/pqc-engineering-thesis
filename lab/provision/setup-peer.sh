@@ -23,7 +23,9 @@ info "measured interface: $ifc"
 ip addr replace "$my_ip/$PREFIX_LEN" dev "$ifc"
 # Lima's DHCP address stays primary (SSH needs it), so pin the lab address as source.
 ip route replace "$far_net" via "$via" dev "$ifc" src "$my_ip"
-ip route replace "$far_lan" via "$via" dev "$ifc" src "$my_ip"
+# The far LAN is reachable only through the tunnel: while a CHILD_SA is up, strongSwan
+# routes it in table 220; without one, the traffic is dropped instead of sent in clear.
+ip route replace blackhole "$far_lan"
 sysctl -q -w net.ipv4.ip_forward=1 \
     net.ipv4.conf.all.accept_redirects=0 "net.ipv4.conf.$ifc.accept_redirects=0"
 
