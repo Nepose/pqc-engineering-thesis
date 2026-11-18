@@ -91,7 +91,8 @@ Table~\ref{tab:ke-sizes} compares the data each party has to transmit.
 Lattice-based KEMs have been studied far less intensively than ECDH, and their
 implementations are still young. A \emph{hybrid} key exchange combines a
 classical and a post-quantum algorithm so that the resulting key remains secure
-as long as at least one of the components is unbroken. Hybrid deployment is
+as long as at least one of the components is unbroken; RFC~9794 calls such
+a scheme a post-quantum/traditional (PQ/T) hybrid~\cite{rfc9794}. Hybrid deployment is
 recommended during the transition period by, among others, the French
 ANSSI~\cite{anssi2023} and the German BSI, whose technical guideline currently
 recommends post-quantum key agreement \emph{only} in combination with
@@ -865,7 +866,12 @@ groups.
             & modified strongSwan 6.0 + liboqs, Docker, x86
             & X25519/P-256/P-384 + ML-KEM-768/1024, hybrid vs.\ composite over TCP (ML-DSA)
             & initial
-            & 0--10\,\% loss (one direction), 0--10~ms delay \\ \hline\hline
+            & 0--10\,\% loss (one direction), 0--10~ms delay \\ \hline
+        GSMA PQ.06~\cite{gsmaPq06}
+            & vendor prototype between base stations (X2/Xn), oqs-provider 0.8.0; up to 520 IKE SAs
+            & X25519 + 7 $\times$ ML-KEM-1024 (RSA-4096)
+            & initial
+            & not studied \\ \hline\hline
         \textbf{This thesis}
             & unmodified open-source daemon, x86 and ARM gateway
             & classical vs.\ classical + ML-KEM (classical, constant)
@@ -876,6 +882,7 @@ groups.
 % TODO: Bae, Mutlugun and He are closed access -- their rows rest on the
 % abstracts (and, for Bae, on the description in bahaaeldin2026). Check the
 % full texts via the university library.
+% TODO: verify the PQ.06 row against Sections 6.2 and 7 of the document.
 
 \subparagraph{Cost on reliable links is small.}
 On reliable links, hybrid key exchange adds little to SA establishment.
