@@ -123,9 +123,14 @@ else
 fi
 
 echo "== 5 iperf3 (not captured)"
-vm pqc-resp "pkill -x iperf3 || true; ip netns exec lan iperf3 -s -1 -D; sleep 0.5"
-tput="$(vm pqc-ini "ip netns exec lan iperf3 -c $RESP_LAN_HOST -t 3 -f m" 2>&1 | awk '/receiver/ { print $(NF-2), $(NF-1) }' || true)"
-if [ -n "$tput" ]; then pass "TCP through the tunnel: $tput"; else fail "iperf3 did not complete"; fi
+if [ "${got:-0}" -eq 0 ]; then
+    fail "skipped: no traffic gets through"
+else
+    vm pqc-resp "pkill -x iperf3 || true; ip netns exec lan iperf3 -s -1 -D; sleep 0.5"
+    tput="$(vm pqc-ini "ip netns exec lan iperf3 -c $RESP_LAN_HOST -t 3 -f m --connect-timeout 3000" 2>&1 |
+        awk '/receiver/ { print $(NF-2), $(NF-1) }' || true)"
+    if [ -n "$tput" ]; then pass "TCP through the tunnel: $tput"; else fail "iperf3 did not complete"; fi
+fi
 
 # Tear down and collect the raw files.
 vm pqc-ini "swanctl --terminate --ike $id --timeout 10" >/dev/null 2>&1 || true
