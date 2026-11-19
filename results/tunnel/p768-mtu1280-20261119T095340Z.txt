@@ -1,0 +1,62 @@
+tunnel check p768 (mlkem768), profile mtu1280, 2026-11-19T09:53:40Z
+scripts: commit 810e528
+daemon:  strongSwan swanctl 6.1.0
+raw:     results/raw/tunnel/p768-mtu1280-20261119T095340Z
+
+== 1 up
+  p768: #1, ESTABLISHED, IKEv2, 3b70245e2ebcf763_i* 08fdc862b9130237_r
+    local  'ini.pqc.lab' @ 10.10.1.100[4500]
+    remote 'resp.pqc.lab' @ 10.10.2.100[4500]
+    AES_GCM_16-256/PRF_HMAC_SHA2_384/ML_KEM_768
+    established 0s ago
+    p768-lan: #1, reqid 1, INSTALLED, TUNNEL, ESP:AES_GCM_16-256
+      installed 0s ago
+      in  cab72ad0,      0 bytes,     0 packets
+      out cb73da62,      0 bytes,     0 packets
+      local  172.16.1.0/24
+      remote 172.16.2.0/24
+PASS  CHILD_SA installed; swanctl --initiate returned after 11230 ms
+== 2 proposal
+PASS  IKE proposal AES_GCM_16-256/PRF_HMAC_SHA2_384/ML_KEM_768
+== 3 traffic
+PASS  172.16.1.10 -> 172.16.2.10: 5/5 replies
+== 4 esp
+PASS  10 ESP packets on pqc-wan, 0 plaintext LAN packets
+== 5 iperf3 (not captured)
+PASS  TCP through the tunnel: 3497 Mbits/sec
+
+== on the wire: pqc-left, the initiator's side of pqc-wan, decrypted with the session keys
+frame    t [ms] from  IP B IP frag   IKE message              IKE frg payloads                   KE data
+    1       0.0 ini   1412           IKE_SA_INIT #0 req                                          
+    2    4005.5 ini   1276 off 0     (IP fragment)                                               
+    3    4005.5 ini    156 off 157   IKE_SA_INIT #0 req               SA KE No Nx5               mlkem768 1184 B
+    4   11212.3 ini   1276 off 0     (IP fragment)                                               
+    5   11212.3 ini    156 off 157   IKE_SA_INIT #0 req               SA KE No Nx5               mlkem768 1184 B
+    6   11213.6 resp  1276 off 0     (IP fragment)                                               
+    7   11213.6 resp    93 off 157   IKE_SA_INIT #0 resp              SA KE No CERTREQ Nx6       mlkem768 1088 B
+    8   11217.8 ini    817           IKE_AUTH #1 req                  IDi CERT CERTREQ IDr AUTH SA TSi TSr Nx7 
+    9   11221.9 resp   744           IKE_AUTH #1 resp                 IDr CERT AUTH SA TSi TSr Nx3 
+   10   11398.3 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   11   11398.5 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   12   11605.2 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   13   11605.9 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   14   11811.0 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   15   11811.6 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   16   12014.7 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   17   12015.5 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   18   12220.7 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   19   12221.6 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+
+IKE message (exchange MID)   frames IP frags IKE frags   bytes  payloads                   KE data
+IKE_SA_INIT 0 req                 5        4         -    4276  SA KE No Nx5               mlkem768 1184 B
+IKE_SA_INIT 0 resp                2        2         -    1369  SA KE No CERTREQ Nx6       mlkem768 1088 B
+IKE_AUTH 1 req                    1        -         -     817  IDi CERT CERTREQ IDr AUTH SA TSi TSr Nx7 
+IKE_AUTH 1 resp                   1        -         -     744  IDr CERT AUTH SA TSi TSr Nx3 
+total IKE                         9                       7206                             
+handshake on the wire (first IKE_SA_INIT request to IKE_AUTH response): 11221.9 ms
+ESP frames: 5 from ini, 5 from resp
+
+== pqc-right, the responder's side: 19 frames, 6 of them IP fragments
+
+RESULT: all checks passed
+report: results/tunnel/p768-mtu1280-20261119T095340Z.txt
