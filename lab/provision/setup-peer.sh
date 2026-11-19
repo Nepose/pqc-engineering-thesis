@@ -26,6 +26,20 @@ ip route replace "$far_net" via "$via" dev "$ifc" src "$my_ip"
 # The far LAN is reachable only through the tunnel: while a CHILD_SA is up, strongSwan
 # routes it in table 220; without one, the traffic is dropped instead of sent in clear.
 ip route replace blackhole "$far_lan"
+# The same state for networkd, so a restart of networkd keeps it (lib.sh). networkd applies
+# it on reload; the commands above have already set it, so nothing changes now.
+networkd_dropin "$ifc" "[Address]
+Address=$my_ip/$PREFIX_LEN
+
+[Route]
+Destination=$far_net
+Gateway=$via
+PreferredSource=$my_ip
+
+[Route]
+Destination=$far_lan
+Type=blackhole"
+networkctl reload
 sysctl -q -w net.ipv4.ip_forward=1 \
     net.ipv4.conf.all.accept_redirects=0 "net.ipv4.conf.$ifc.accept_redirects=0"
 
@@ -42,4 +56,9 @@ ip netns exec lan ip addr replace "$lan_host/24" dev veth-lan
 ip netns exec lan ip link set veth-lan up
 ip netns exec lan ip route replace default via "$lan_gw"
 
+# networkd re-applies the state asynchronously after the reload: wait for the route.
+for _ in $(seq 50); do
+    ip route get "${far_net%.*}.100" 2>/dev/null | grep -q "via $via" && break
+    sleep 0.1
+done
 info "route to the peer: $(ip route get "${far_net%.*}.100" | head -n1)"

@@ -25,6 +25,12 @@ info "left: $left, right: $right"
 
 ip addr replace "$WAN_LEFT_IP/$PREFIX_LEN" dev "$left"
 ip addr replace "$WAN_RIGHT_IP/$PREFIX_LEN" dev "$right"
+# The same addresses for networkd, so a restart of networkd keeps them (lib.sh).
+networkd_dropin "$left"  "[Address]
+Address=$WAN_LEFT_IP/$PREFIX_LEN"
+networkd_dropin "$right" "[Address]
+Address=$WAN_RIGHT_IP/$PREFIX_LEN"
+networkctl reload
 sysctl -q -w net.ipv4.ip_forward=1 \
     net.ipv4.conf.all.send_redirects=0 \
     "net.ipv4.conf.$left.send_redirects=0" "net.ipv4.conf.$right.send_redirects=0"
