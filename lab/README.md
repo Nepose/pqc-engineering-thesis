@@ -64,6 +64,13 @@ the same with `ini` in `pqc-ini`, then `sudo swanctl --initiate --child <id>-lan
 - **Clocks.** NTP gets no answer through the `user-v2` networks, and a VM's clock stands still while
   the host sleeps. `lab/lima/lab.sh clock` sets every lab VM from the host clock; `tunnel-check.sh`
   does it before each run. Durations never mix clocks: they come from one pcap or one client.
+- **Network state.** The lab addresses, the routes via `pqc-wan` and the blackhole routes are also
+  written as systemd-networkd drop-ins (`/etc/systemd/network/10-netplan-<if>.network.d/50-pqc-lab.conf`),
+  so a restart of networkd keeps them. Without the drop-ins, networkd drops them as foreign on every
+  restart; unattended-upgrades restarted it on 2026-11-19. `tunnel-check.sh` and `link-check.sh`
+  first run `lab/lima/lab.sh net-check` and refuse to start without that state, because a run on a
+  broken path still writes a plausible report. After a VM reboot, `lab/lima/lab.sh net` restores
+  the state, including the namespaces.
 - **Wireshark elsewhere.** The key files from `/var/lib/pqc-lab/wireshark` work in Wireshark 4.x
   after two adjustments, which `ike-table.sh` makes itself: AES-GCM entries in `esp_sa` need `NULL`
   authentication and the ICV length in the name, and with RFC 9370 the IKE table holds one line per

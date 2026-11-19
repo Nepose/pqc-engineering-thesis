@@ -35,6 +35,10 @@ ke="$(awk -F'\t' -v id="$id" '$1 !~ /^#/ && $1 == id { print $2 }' "$LAB/swanctl
 expect="$(sed -E -e 's/-ke([1-7])_/\/KE\1_/g' -e 's/x25519/CURVE_25519/g' \
                  -e 's/ecp256/ECP_256/g' -e 's/mlkem([0-9]+)/ML_KEM_\1/g' <<<"$ke")"
 
+# A lab that has lost its addresses or routes still yields a plausible report, so refuse
+# to start without them (lab.sh net-check).
+"$LAB/lima/lab.sh" net-check >/dev/null
+
 name="$id"
 [ "${profiles[*]}" = lan ] || name="$id-$(IFS=-; echo "${profiles[*]}")"
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"

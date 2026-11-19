@@ -20,6 +20,10 @@ with_esp=1
 [ "${1:-}" = "--no-esp" ] && with_esp=0
 
 mkdir -p "$REPO/results/l0"
+# A lab that has lost its addresses or routes still yields a plausible report, so refuse
+# to start without them (lab.sh net-check).
+"$LAB/lima/lab.sh" net-check >/dev/null
+
 report="$REPO/results/l0/link-check-$(date -u +%Y%m%dT%H%M%SZ).txt"
 exec > >(tee "$report") 2>&1
 

@@ -8,6 +8,8 @@
 #   peers          clone pqc-base into pqc-ini / pqc-resp, attach networks, set up addressing
 #   wan            create pqc-wan on both networks and set it up as the router
 #   sync           copy lab/ into every running lab VM (after editing scripts)
+#   net            re-apply addresses, routes and namespaces in the running VMs (after a reboot)
+#   net-check      check that this state is in place (the checks run it first)
 #   clock          set the clock of every running lab VM from the host clock
 #   status         show lab VMs and networks; warn about other running VMs (noise)
 #   stop           stop all lab VMs
@@ -90,6 +92,48 @@ cmd_wan() {
     vm_root pqc-wan "$LAB_VM_DIR/provision/setup-wan.sh"
 }
 
+cmd_net() {
+    local role
+    vm_root pqc-wan "$LAB_VM_DIR/provision/setup-wan.sh"
+    for role in ini resp; do
+        vm_root "pqc-$role" "$LAB_VM_DIR/provision/setup-peer.sh" "$role"
+    done
+}
+
+# The checks depend on runtime state that a VM can lose (a reboot, a networkd restart),
+# and without it a run still writes a plausible report: on 2026-11-19 P768 over mtu1280
+# "failed" because pqc-ini had lost its lab address.
+net_check_peer() {
+    local vm="$1" my_ip="$2" via="$3" peer_ip="$4" far_lan="$5" out ok=0
+    running "$vm" || { warn "$vm is not running"; return 1; }
+    out="$(vm_root "$vm" sh -c "ip -4 -o addr show; echo ROUTE \$(ip route get $peer_ip); \
+        echo BLACKHOLE \$(ip route show type blackhole); echo NETNS \$(ip netns list)")"
+    grep -q " $my_ip/" <<<"$out" || { warn "$vm: lab address $my_ip missing"; ok=1; }
+    grep -q "^ROUTE .*via $via .*src $my_ip" <<<"$out" \
+        || { warn "$vm: $peer_ip is not routed via $via from $my_ip"; ok=1; }
+    grep -q "^BLACKHOLE .*${far_lan%/*}" <<<"$out" \
+        || { warn "$vm: no blackhole route for $far_lan (the gateway would not fail closed)"; ok=1; }
+    grep -Eq '^NETNS (.* )?lan( |$)' <<<"$out" || { warn "$vm: namespace lan missing"; ok=1; }
+    return "$ok"
+}
+
+cmd_net_check() {
+    local bad=0 out ip
+    if running pqc-wan; then
+        out="$(vm_root pqc-wan sh -c 'ip -4 -o addr show; echo FORWARD $(sysctl -n net.ipv4.ip_forward)')"
+        for ip in "$WAN_LEFT_IP" "$WAN_RIGHT_IP"; do
+            grep -q " $ip/" <<<"$out" || { warn "pqc-wan: lab address $ip missing"; bad=1; }
+        done
+        grep -q "^FORWARD 1" <<<"$out" || { warn "pqc-wan: IPv4 forwarding is off"; bad=1; }
+    else
+        warn "pqc-wan is not running"; bad=1
+    fi
+    net_check_peer pqc-ini  "$INI_IP"  "$WAN_LEFT_IP"  "$RESP_IP" "$RESP_LAN" || bad=1
+    net_check_peer pqc-resp "$RESP_IP" "$WAN_RIGHT_IP" "$INI_IP"  "$INI_LAN"  || bad=1
+    [ "$bad" = 0 ] || die "lab network state incomplete; restore it with lab/lima/lab.sh net"
+    info "lab network state OK"
+}
+
 cmd_sync() {
     local vm
     for vm in "${LAB_VMS[@]}"; do running "$vm" && push_lab "$vm"; done
@@ -140,10 +184,12 @@ case "${1:-}" in
     peers)         cmd_peers ;;
     wan)           cmd_wan ;;
     sync)          cmd_sync ;;
+    net)           cmd_net ;;
+    net-check)     cmd_net_check ;;
     clock)         cmd_clock ;;
     status)        cmd_status ;;
     stop)          cmd_stop ;;
     destroy-peers) cmd_destroy_vms pqc-ini pqc-resp ;;
     destroy)       cmd_destroy_vms "${LAB_VMS[@]}" ;;
-    *) sed -n '2,17p' "$0"; exit 1 ;;
+    *) sed -n '2,19p' "$0"; exit 1 ;;
 esac
