@@ -6,6 +6,7 @@ LAB="$(cd "$(dirname "$0")/.." && pwd)"
 . "$LAB/lab.env"
 . "$LAB/lib.sh"
 need_root
+"$LAB/provision/freeze-packages.sh"
 
 # tshark decodes the captures here, next to the pcaps (checks/tunnel-check.sh).
 tools=(tcpdump nft ethtool tshark)

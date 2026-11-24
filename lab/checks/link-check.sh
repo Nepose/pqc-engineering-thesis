@@ -34,6 +34,8 @@ failed=0
 pass() { echo "PASS  $*"; }
 fail() { echo "FAIL  $*"; failed=1; }
 
+print_versions
+
 # Median, p99 and count of the "time=" values in ping output (stdin).
 rtt_stats() {
     awk -F'time=' '/time=/ { split($2, t, " "); print t[1] }' | sort -n | awk '

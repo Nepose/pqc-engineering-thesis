@@ -7,6 +7,7 @@ LAB="$(cd "$(dirname "$0")/.." && pwd)"
 . "$LAB/lab.env"
 . "$LAB/lib.sh"
 need_root
+"$LAB/provision/freeze-packages.sh"
 
 case "${1:-}" in
     ini)  my_ip="$INI_IP";  my_net="$LEFT_NET";  via="$WAN_LEFT_IP"

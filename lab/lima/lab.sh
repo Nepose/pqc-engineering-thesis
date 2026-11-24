@@ -3,7 +3,7 @@
 #
 # Usage: lab/lima/lab.sh <command>
 #   networks       create the measured networks pqc-left / pqc-right (option A, lab/README.md)
-#   base           create and start pqc-base and copy lab/ into it
+#   base           create and start pqc-base, copy lab/ into it, turn automatic upgrades off
 #   build          build strongSwan and the lab PKI inside pqc-base (step L1)
 #   peers          clone pqc-base into pqc-ini / pqc-resp, attach networks, set up addressing
 #   wan            create pqc-wan on both networks and set it up as the router
@@ -61,6 +61,7 @@ cmd_base() {
     exists pqc-base || limactl create --tty=false --name pqc-base "$HERE/pqc-base.yaml"
     running pqc-base || limactl start pqc-base
     push_lab pqc-base
+    vm_root pqc-base "$LAB_VM_DIR/provision/freeze-packages.sh"
 }
 
 cmd_build() {

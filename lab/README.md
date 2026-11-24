@@ -61,6 +61,10 @@ the same with `ini` in `pqc-ini`, then `sudo swanctl --initiate --child <id>-lan
 - **Generated material stays out of git.** The lab PKI is generated inside the VMs (`/var/lib/pqc-lab/pki`). Raw results go under `results/raw/`, which is ignored.
 - **Lab VMs only.** The scripts touch only VMs whose names start with `pqc-`. During measurement runs, stop every other VM and every heavy host process.
 - **Pin and record versions.** Every version change is a commit to `lab.env` and a line in chapter 4.
+  The OS packages do not change by themselves: `provision/freeze-packages.sh` (run by `lab.sh base`
+  and the setup scripts) masks the apt timers and turns unattended-upgrades off, which is acceptable
+  only because the lab is isolated. Every report header lists the kernel and the relevant package
+  versions of each VM, and warns when the two peers differ. Upgrade by hand, between campaigns.
 - **Clocks.** NTP gets no answer through the `user-v2` networks, and a VM's clock stands still while
   the host sleeps. `lab/lima/lab.sh clock` sets every lab VM from the host clock; `tunnel-check.sh`
   does it before each run. Durations never mix clocks: they come from one pcap or one client.

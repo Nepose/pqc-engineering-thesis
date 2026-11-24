@@ -55,6 +55,7 @@ fail() { echo "FAIL  $*"; failed=1; }
 echo "tunnel check $id ($ke), profile ${profiles[*]}, $(date -u +%FT%TZ)"
 echo "scripts: commit $(git -C "$REPO" rev-parse --short HEAD)$(git -C "$REPO" diff --quiet HEAD -- lab || echo ' + uncommitted changes in lab/')"
 echo "daemon:  $(vm pqc-ini 'swanctl --version')"
+print_versions
 echo "raw:     ${raw#"$REPO"/}"
 echo
 

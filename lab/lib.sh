@@ -26,3 +26,18 @@ networkd_dropin() {
         "$conf" > "$dir/50-pqc-lab.conf"
     info "networkd drop-in: $dir/50-pqc-lab.conf"
 }
+
+# Package versions of the lab VMs for the report headers, run on the host by a check that
+# defines vm(). strongSwan is built from source and reported separately (swanctl --version).
+PEER_VERSIONS='printf "kernel %s" "$(uname -r)"; dpkg-query -W -f=", \${Package} \${Version}" libc6 libssl3t64'
+WAN_VERSIONS='printf "kernel %s" "$(uname -r)"; dpkg-query -W -f=", \${Package} \${Version}" iproute2 tcpdump tshark'
+print_versions() {
+    local ini resp wan
+    ini="$(vm pqc-ini "$PEER_VERSIONS")"
+    resp="$(vm pqc-resp "$PEER_VERSIONS")"
+    wan="$(vm pqc-wan "$WAN_VERSIONS")"
+    echo "system:  ini  $ini"
+    echo "         resp $resp"
+    echo "         wan  $wan"
+    [ "$ini" = "$resp" ] || warn "pqc-ini and pqc-resp run different package versions"
+}
