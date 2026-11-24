@@ -57,9 +57,9 @@ CRYSTALS-Kyber)~\cite{fips203}, FIPS~204 (ML-DSA, a lattice-based signature
 scheme)~\cite{fips204} and FIPS~205 (SLH-DSA, a stateless hash-based signature
 scheme)~\cite{fips205}. In March 2025 HQC was additionally selected as a backup
 KEM based on different mathematical assumptions~\cite{nistir8545}. NIST has also
-proposed a transition timeline under which quantum-vulnerable algorithms at the
-112-bit security level are deprecated after 2030 and disallowed after
-2035~\cite{nistir8547}.
+set a transition timeline under which quantum-vulnerable key establishment and
+signatures (at 112 bits of classical security or more) are deprecated after 2030
+and disallowed after 2035~\cite{nistir8547}.
 
 \paragraph{KEM versus Diffie--Hellman.}
 ML-KEM is not a drop-in replacement for Diffie--Hellman. A KEM consists of three
@@ -1011,9 +1011,10 @@ roadmap~\cite{euPqcRoadmap}, prepared by the NIS Cooperation Group and
 published in June 2025, asks member states to start national transitions and
 define roadmaps by the end of 2026. High-risk use cases should be migrated by
 the end of 2030, and the transition should be completed by 2035. BSI explicitly aligns its guideline with this 2035
-horizon~\cite{bsiTr02102}. In the United States, NIST IR~8547 proposes
-deprecating quantum-vulnerable algorithms at the 112-bit security level after
-2030 and disallowing them after 2035~\cite{nistir8547}. Because VPN key
+horizon~\cite{bsiTr02102}. In the United States, NIST IR~8547 deprecates
+quantum-vulnerable public-key algorithms after 2030 and disallows them after
+2035; high-impact federal systems must adopt post-quantum key establishment by
+the end of 2030~\cite{nistir8547}. Because VPN key
 exchange is exposed to HNDL (Section~\ref{sec:sota-quantum}), VPNs that carry
 long-lived confidential data are natural candidates for the high-risk
 category.
