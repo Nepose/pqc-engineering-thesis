@@ -1,0 +1,78 @@
+rekey check p768 (mlkem768), scenario s2 (swanctl --rekey --child p768-lan), profile lan, 2026-11-24T17:00:34Z
+scripts: commit 591d3f3
+daemon:  strongSwan swanctl 6.1.0
+system:  ini  kernel 6.8.0-149-generic, libc6 2.39-0ubuntu8.12, libssl3t64 3.0.13-0ubuntu3.16
+         resp kernel 6.8.0-149-generic, libc6 2.39-0ubuntu8.12, libssl3t64 3.0.13-0ubuntu3.16
+         wan  kernel 6.8.0-149-generic, iproute2 6.1.0-1ubuntu6.4, tcpdump 4.99.4-3ubuntu4.24.04.1, tshark 4.2.2-1.1build3
+raw:     results/raw/rekey/p768-s2-20261124T170034Z
+
+== 1 up
+  p768: #1, ESTABLISHED, IKEv2, 3d2159c882c845b6_i* 30f2a2a38c3cb206_r
+    local  'ini.pqc.lab' @ 10.10.1.100[4500]
+    remote 'resp.pqc.lab' @ 10.10.2.100[4500]
+    AES_GCM_16-256/PRF_HMAC_SHA2_384/ML_KEM_768
+    established 0s ago
+    p768-lan: #1, reqid 1, INSTALLED, TUNNEL, ESP:AES_GCM_16-256
+      installed 0s ago
+      in  cb935b05,      0 bytes,     0 packets
+      out ce6bc8d9,      0 bytes,     0 packets
+      local  172.16.1.0/24
+      remote 172.16.2.0/24
+PASS  tunnel up before the procedure
+== 2 rekey
+  rekey completed successfully
+  p768: #1, ESTABLISHED, IKEv2, 3d2159c882c845b6_i* 30f2a2a38c3cb206_r
+    local  'ini.pqc.lab' @ 10.10.1.100[4500]
+    remote 'resp.pqc.lab' @ 10.10.2.100[4500]
+    AES_GCM_16-256/PRF_HMAC_SHA2_384/ML_KEM_768
+    established 1s ago
+    p768-lan: #1, reqid 1, DELETED, TUNNEL, ESP:AES_GCM_16-256
+      installed 1s ago
+      in  cb935b05,      0 bytes,     0 packets
+      out ce6bc8d9,      0 bytes,     0 packets
+      local  172.16.1.0/24
+      remote 172.16.2.0/24
+    p768-lan: #2, reqid 1, INSTALLED, TUNNEL, ESP:AES_GCM_16-256
+      installed 0s ago
+      in  cd388114,      0 bytes,     0 packets
+      out c1d9f1cf,      0 bytes,     0 packets
+      local  172.16.1.0/24
+      remote 172.16.2.0/24
+PASS  IKE SPI 3d2159c882c845b6 -> 3d2159c882c845b6, inbound ESP SPI cb935b05 -> cd388114, old SA deleted
+== 3 traffic
+PASS  5/5 replies, ESP SPIs on pqc-wan: c1d9f1cf cd388114, 0 plaintext LAN packets
+
+== on the wire: pqc-left, the initiator's side of pqc-wan, decrypted with the session keys
+frame    t [ms] from  IP B IP frag   IKE message              IKE frg payloads                   KE data
+    1       0.0 ini    221           CREATE_CHILD_SA #2 req           SA No TSi TSr N            
+    2       2.3 resp   209           CREATE_CHILD_SA #2 resp          SA No TSi TSr              
+    3       3.7 ini    101           INFORMATIONAL #3 req             D                          
+    4       4.7 resp   101           INFORMATIONAL #3 resp            D                          
+    5     554.5 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+    6     555.0 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+    7     764.7 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+    8     765.5 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+    9     972.8 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   10     973.8 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   11    1179.0 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   12    1179.8 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   13    1383.4 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   14    1384.2 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+
+IKE message (exchange MID)   frames IP frags IKE frags   bytes  payloads                   KE data
+CREATE_CHILD_SA 2 req             1        -         -     221  SA No TSi TSr N            
+CREATE_CHILD_SA 2 resp            1        -         -     209  SA No TSi TSr              
+INFORMATIONAL 3 req               1        -         -     101  D                          
+INFORMATIONAL 3 resp              1        -         -     101  D                          
+total IKE                         4                        632                             
+rekey on the wire (CREATE_CHILD_SA request to the last CREATE_CHILD_SA or IKE_FOLLOWUP_KE response): 2.3 ms
+ESP frames: 5 from ini, 5 from resp
+
+== pqc-right, the responder's side: 14 frames, 0 of them IP fragments
+
+== 4 wire
+PASS  one CREATE_CHILD_SA without KE, no IKE_FOLLOWUP_KE
+      (INFORMATIONAL requests, e.g. deleting the old SA: 1)
+
+RESULT: all checks passed
+report: results/rekey/p768-s2-20261124T170034Z.txt

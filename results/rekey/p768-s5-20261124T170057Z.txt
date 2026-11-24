@@ -1,0 +1,76 @@
+rekey check p768 (mlkem768), scenario s5 (swanctl --rekey --ike p768 --reauth), profile lan, 2026-11-24T17:00:57Z
+scripts: commit 591d3f3
+daemon:  strongSwan swanctl 6.1.0
+system:  ini  kernel 6.8.0-149-generic, libc6 2.39-0ubuntu8.12, libssl3t64 3.0.13-0ubuntu3.16
+         resp kernel 6.8.0-149-generic, libc6 2.39-0ubuntu8.12, libssl3t64 3.0.13-0ubuntu3.16
+         wan  kernel 6.8.0-149-generic, iproute2 6.1.0-1ubuntu6.4, tcpdump 4.99.4-3ubuntu4.24.04.1, tshark 4.2.2-1.1build3
+raw:     results/raw/rekey/p768-s5-20261124T170057Z
+
+== 1 up
+  p768: #1, ESTABLISHED, IKEv2, bc7dcd5ba3b64c66_i* 92cfe228bf2d86fe_r
+    local  'ini.pqc.lab' @ 10.10.1.100[4500]
+    remote 'resp.pqc.lab' @ 10.10.2.100[4500]
+    AES_GCM_16-256/PRF_HMAC_SHA2_384/ML_KEM_768
+    established 0s ago
+    p768-lan: #1, reqid 1, INSTALLED, TUNNEL, ESP:AES_GCM_16-256
+      installed 0s ago
+      in  c5f422fd,      0 bytes,     0 packets
+      out c22bb794,      0 bytes,     0 packets
+      local  172.16.1.0/24
+      remote 172.16.2.0/24
+PASS  tunnel up before the procedure
+== 2 rekey
+  rekey completed successfully
+  p768: #2, ESTABLISHED, IKEv2, f7699e1590863612_i* eb9a7e9c7d478f64_r
+    local  'ini.pqc.lab' @ 10.10.1.100[4500]
+    remote 'resp.pqc.lab' @ 10.10.2.100[4500]
+    AES_GCM_16-256/PRF_HMAC_SHA2_384/ML_KEM_768
+    established 1s ago
+    p768-lan: #2, reqid 1, INSTALLED, TUNNEL, ESP:AES_GCM_16-256
+      installed 1s ago
+      in  cc264ef0,      0 bytes,     0 packets
+      out ca31297a,      0 bytes,     0 packets
+      local  172.16.1.0/24
+      remote 172.16.2.0/24
+PASS  IKE SPI bc7dcd5ba3b64c66 -> f7699e1590863612, inbound ESP SPI c5f422fd -> cc264ef0, old SA deleted
+== 3 traffic
+PASS  5/5 replies, ESP SPIs on pqc-wan: ca31297a cc264ef0, 0 plaintext LAN packets
+
+== on the wire: pqc-left, the initiator's side of pqc-wan, decrypted with the session keys
+frame    t [ms] from  IP B IP frag   IKE message              IKE frg payloads                   KE data
+    1       0.0 ini   1416           IKE_SA_INIT #0 req               SA KE No Nx5               mlkem768 1184 B
+    2       2.9 resp  1353           IKE_SA_INIT #0 resp              SA KE No CERTREQ Nx6       mlkem768 1088 B
+    3       3.8 ini    810           IKE_AUTH #1 req                  IDi CERT CERTREQ IDr AUTH SA TSi TSr Nx6 
+    4       5.4 resp   742           IKE_AUTH #1 resp                 IDr CERT AUTH SA TSi TSr Nx3 
+    5       7.0 ini     97           INFORMATIONAL #2 req             D                          
+    6       7.6 resp    89           INFORMATIONAL #2 resp                                       
+    7     577.4 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+    8     577.9 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+    9     781.3 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   10     782.2 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   11     986.5 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   12     987.6 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   13    1192.5 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   14    1193.4 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+   15    1398.3 ini    140           ESP                              172.16.1.10 > 172.16.2.10 ICMP 
+   16    1399.2 resp   140           ESP                              172.16.2.10 > 172.16.1.10 ICMP 
+
+IKE message (exchange MID)   frames IP frags IKE frags   bytes  payloads                   KE data
+IKE_SA_INIT 0 req                 1        -         -    1416  SA KE No Nx5               mlkem768 1184 B
+IKE_SA_INIT 0 resp                1        -         -    1353  SA KE No CERTREQ Nx6       mlkem768 1088 B
+IKE_AUTH 1 req                    1        -         -     810  IDi CERT CERTREQ IDr AUTH SA TSi TSr Nx6 
+IKE_AUTH 1 resp                   1        -         -     742  IDr CERT AUTH SA TSi TSr Nx3 
+INFORMATIONAL 2 req               1        -         -      97  D                          
+INFORMATIONAL 2 resp              1        -         -      89                             
+total IKE                         6                       4507                             
+handshake on the wire (first IKE_SA_INIT request to IKE_AUTH response): 5.4 ms
+ESP frames: 5 from ini, 5 from resp
+
+== pqc-right, the responder's side: 16 frames, 0 of them IP fragments
+
+== 4 wire
+PASS  new IKE_SA_INIT with mlkem768, 0 IKE_INTERMEDIATE, IKE_AUTH
+      (INFORMATIONAL requests, e.g. deleting the old SA: 1)
+
+RESULT: all checks passed
+report: results/rekey/p768-s5-20261124T170057Z.txt
