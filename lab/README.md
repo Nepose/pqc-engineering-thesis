@@ -3,8 +3,8 @@
 The test bed runs on a single laptop. It has three Linux VMs (Lima, Ubuntu 24.04 arm64) and
 strongSwan 6.x built from source with ML-KEM support. Thesis chapter 4 describes it, and appendix A lists its configuration.
 
-> **Status: L0–L4 validated on 2026-11-18** (reports in [results/](../results/)). The files for
-> L5–L7 (rekeying, measurement client, profiles other than `lan` and `ltem`) are still a design.
+> **Status: L0–L4 validated on 2026-11-18, L5 on 2026-11-24** (reports in [results/](../results/)).
+> The files for L6–L7 (measurement client, profiles other than `lan` and `ltem`) are still a design.
 
 ## Topology
 
@@ -36,7 +36,7 @@ strongSwan 6.x built from source with ML-KEM support. Thesis chapter 4 describes
 | [provision/setup-peer.sh](provision/setup-peer.sh), [provision/setup-wan.sh](provision/setup-wan.sh) | Addressing, routing, LAN namespaces, forwarding without offloads | L2 |
 | [swanctl/](swanctl/) | Configuration matrix (C1, P512–P1024, H512–H1024), connection template, lab PKI | L3–L4 |
 | [profiles/](profiles/) | Network profiles on `pqc-wan` (LAN, LTE-M-like, NB-IoT-like, MTU 1280, fragment drop) and the IoT device profile on `pqc-ini` | L0, L7 |
-| [checks/](checks/) | `link-check.sh` (L0 criteria), `build-check.sh` (L1 criteria), `tunnel-check.sh` (one configuration end to end, L3–L4), `ike-table.sh` (decodes a capture on `pqc-wan`, with the session keys if given) | L0–L4 |
+| [checks/](checks/) | `link-check.sh` (L0 criteria), `build-check.sh` (L1 criteria), `tunnel-check.sh` (one configuration end to end, L3–L4), `rekey-check.sh` (one rekeying procedure S2–S5, L5), `ike-table.sh` (decodes a capture on `pqc-wan`, with the session keys if given) | L0–L5 |
 
 ## Build order
 
@@ -53,7 +53,7 @@ the same with `ini` in `pqc-ini`, then `sudo swanctl --initiate --child <id>-lan
 | L2 VMs and routing | `lab/lima/lab.sh destroy-peers` (type `delete`), then `peers` (re-clone with strongSwan); `lab/checks/link-check.sh` again | identical binaries on both peers; `ip route get` on each peer goes via `pqc-wan` |
 | L3 classical tunnel | `lab/checks/tunnel-check.sh c1` | ESTABLISHED; ESP seen on `pqc-wan`; ping and iperf3 between the namespaces |
 | L4 hybrid and pure | `lab/checks/tunnel-check.sh h768`, then `p768`, `p1024` | the decoded capture shows IKE_INTERMEDIATE, the KE sizes, IKE fragments for the hybrid and IP fragments for P1024 |
-| L5 rekeying | `swanctl --rekey --child`, `--rekey --ike`, `--rekey --ike --reauth`; `use.sh ... --pfs` for Child SA rekey with KE | every procedure visible in the pcap |
+| L5 rekeying | `lab/checks/rekey-check.sh <id> s2` (Child SA rekey without KE), `s3` (with KE: `use.sh ... --pfs`), `s4` (IKE SA rekey), `s5` (reauthentication); for `c1`, `p768` and `h768` | every procedure visible in the decrypted pcap: S3 and S4 of a hybrid add one IKE_FOLLOWUP_KE per additional key exchange (RFC 9370 §2.2.4); a pure ML-KEM rekey stays in one IKE-fragmented CREATE_CHILD_SA |
 
 ## Rules
 

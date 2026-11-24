@@ -131,8 +131,11 @@ END {
         tb += bytes[k]; tf += frames[k]
         if (k == "IKE_SA_INIT 0 req" && t0 == "") t0 = start[k]
         if (k ~ /^IKE_AUTH .* resp$/) t1 = last[k]
+        if (k ~ /^CREATE_CHILD_SA .* req$/ && c0 == "") c0 = start[k]
+        if (k ~ /^(CREATE_CHILD_SA|IKE_FOLLOWUP_KE) .* resp$/ && (c1 == "" || last[k] + 0 > c1 + 0)) c1 = last[k]
     }
     printf sfmt, "total IKE", tf, "", "", tb, "", ""
     if (t1 != "") printf "handshake on the wire (first IKE_SA_INIT request to IKE_AUTH response): %.1f ms\n", t1 - t0
+    if (c0 != "" && c1 != "") printf "rekey on the wire (CREATE_CHILD_SA request to the last CREATE_CHILD_SA or IKE_FOLLOWUP_KE response): %.1f ms\n", c1 - c0
     printf "ESP frames: %d from ini, %d from resp\n", esp["ini"], esp["resp"]
 }'
